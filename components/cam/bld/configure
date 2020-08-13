@@ -285,6 +285,7 @@ OPTIONS
      -crm_adv           CRM advection scheme [MPDATA | UM5]
      -crm <model>       CRM model [sam | samxx]
      -use_MAML          use multiple atmosphere and multiple land version of MMF
+     -rrtmgpxx          Use RRTMGP++ code
 EOF
 }
 
@@ -358,6 +359,7 @@ GetOptions(
     "MMF_microphysics_scheme=s"     => \$opts{'MMF_microphysics_scheme'},
     "crm_adv=s"                 => \$opts{'crm_adv'},
     "crm=s"                     => \$opts{'crm'},
+    "rrtmgpxx"                  => \$opts{'rrtmgpxx'},
     "debug"                     => \$opts{'debug'},
     "rain_evap_to_coarse_aero"  => \$opts{'rain_evap_to_coarse_aero'},
     "bc_dep_to_snow_updates"    => \$opts{'bc_dep_to_snow_updates'},
