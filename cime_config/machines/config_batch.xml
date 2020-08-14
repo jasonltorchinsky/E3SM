@@ -508,6 +508,9 @@
      <directives compiler="pgigpu">
        <directive>-alloc_flags gpumps</directive>
      </directives>
+     <directives compiler="gnugpu">
+       <directive>-alloc_flags gpumps</directive>
+     </directives>
      <queues>
        <queue walltimemax="02:00" default="true">batch</queue>
      </queues>
