@@ -18,7 +18,8 @@ module radiation
    use rad_constituents, only: N_DIAG
    use radconstants,     only: &
       nswbands, nlwbands, &
-      get_sw_spectral_midpoints, get_lw_spectral_midpoints
+      get_sw_spectral_midpoints, get_lw_spectral_midpoints, &
+      get_sw_spectral_boundaries
    use cam_history_support, only: add_hist_coord
 
    ! RRTMGP gas optics object to store coefficient information. This is imported
@@ -1561,7 +1562,7 @@ contains
                            cld_tau_bnd_lw, liq_tau_bnd_lw, ice_tau_bnd_lw, snw_tau_bnd_lw &
                         )
                         call sample_cloud_optics_lw( &
-                           ncol, pver, nlwgpts, get_gpoint_bands_sw(), &
+                           ncol, pver, nlwgpts, get_gpoint_bands_lw(), &
                            state%pmid, cld, cldfsnow, &
                            cld_tau_bnd_lw, cld_tau_gpt_lw &
                         )
@@ -2414,7 +2415,7 @@ contains
       real(r8), intent(inout) :: albedo_dif(:,:)  ! surface albedo, diffuse radiation
 
       ! Local namespace
-      real(r8) :: wavenumber_limits(2,nswbands)
+      real(r8), dimension(nswbands) :: lower_bounds, upper_bounds
       integer :: ncol, iband
       character(len=10) :: subname = 'set_albedo'
 
@@ -2438,20 +2439,20 @@ contains
       ! Albedos are input as broadband (visible, and near-IR), and we need to map
       ! these to appropriate bands. Bands are categorized broadly as "visible" or
       ! "infrared" based on wavenumber, so we get the wavenumber limits here
-      wavenumber_limits = k_dist_sw%get_band_lims_wavenumber()
+      call get_sw_spectral_boundaries(lower_bounds, upper_bounds, 'cm^-1')
 
       ! Loop over bands, and determine for each band whether it is broadly in the
       ! visible or infrared part of the spectrum (visible or "not visible")
       do iband = 1,nswbands
-         if (is_visible(wavenumber_limits(1,iband)) .and. &
-             is_visible(wavenumber_limits(2,iband))) then
+         if (is_visible(lower_bounds(iband)) .and. &
+             is_visible(upper_bounds(iband))) then
 
             ! Entire band is in the visible
             albedo_dir(iband,1:ncol) = cam_in%asdir(1:ncol)
             albedo_dif(iband,1:ncol) = cam_in%asdif(1:ncol)
 
-         else if (.not.is_visible(wavenumber_limits(1,iband)) .and. &
-                  .not.is_visible(wavenumber_limits(2,iband))) then
+         else if (.not.is_visible(lower_bounds(iband)) .and. &
+                  .not.is_visible(upper_bounds(iband))) then
 
             ! Entire band is in the longwave (near-infrared)
             albedo_dir(iband,1:ncol) = cam_in%aldir(1:ncol)
