@@ -18,7 +18,6 @@ module radiation
    use rad_constituents, only: N_DIAG
    use radconstants,     only: &
       nswbands, nlwbands, &
-      set_sw_spectral_boundaries, set_lw_spectral_boundaries, &
       get_sw_spectral_midpoints, get_lw_spectral_midpoints
    use cam_history_support, only: add_hist_coord
 
@@ -28,6 +27,8 @@ module radiation
    use rrtmgp_interface, only: &
       k_dist_sw, k_dist_lw, rrtmgp_initialize, &
       rrtmgp_nswbands => nswbands, rrtmgp_nlwbands => nlwbands, &
+      rrtmgp_get_min_temperature => get_min_temperature, &
+      rrtmgp_get_max_temperature => get_max_temperature, &
       nswgpts, nlwgpts
 
    ! Use my assertion routines to perform sanity checks
@@ -480,10 +481,6 @@ contains
       ! Make sure number of bands in absorption coefficient files matches what we expect
       call assert(nswbands == rrtmgp_nswbands, 'nswbands does not match absorption coefficient data')
       call assert(nlwbands == rrtmgp_nlwbands, 'nlwbands does not match absorption coefficient data')
-
-      ! Set band intervals based on inputdata
-      call set_sw_spectral_boundaries(k_dist_sw%get_band_lims_wavenumber())
-      call set_lw_spectral_boundaries(k_dist_lw%get_band_lims_wavenumber())
 
       ! Set number of levels used in radiation calculations
 #ifdef NO_EXTRA_RAD_LEVEL
@@ -1492,11 +1489,11 @@ contains
                      ! values to min/max specified
                      call t_startf('rad_check_temperatures')
                      call handle_error(clip_values( &
-                        tmid_col(1:ncol,1:nlev_rad), k_dist_lw%get_temp_min(), k_dist_lw%get_temp_max(), &
+                        tmid_col(1:ncol,1:nlev_rad), rrtmgp_get_min_temperature(), rrtmgp_get_max_temperature(), &
                         trim(subname) // ' tmid' &
                      ), fatal=.false.)
                      call handle_error(clip_values( &
-                        tint_col(1:ncol,1:nlev_rad+1), k_dist_lw%get_temp_min(), k_dist_lw%get_temp_max(), &
+                        tint_col(1:ncol,1:nlev_rad+1), rrtmgp_get_min_temperature(), rrtmgp_get_max_temperature(), &
                         trim(subname) // ' tint' &
                      ), fatal=.false.)
                      call t_stopf('rad_check_temperatures')
