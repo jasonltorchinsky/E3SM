@@ -172,24 +172,20 @@ module model_flags
   ! Use 2 calls to pdf_closure and the trapezoidal rule to  compute the 
   ! varibles that are output from high order closure
   logical, private :: &
-    !XZheng l_vert_avg_closure  = .true.
-    l_vert_avg_closure  = .false.  !XZheng 08/20/2020
+    l_vert_avg_closure  = .true.
 !$omp threadprivate(l_vert_avg_closure)
 
   ! These are currently set based on l_vert_avg_closure
   logical, public :: &
-    !XZheng l_trapezoidal_rule_zt = .true.,    & ! If true, the trapezoidal rule is called for
-    l_trapezoidal_rule_zt = .false.,    & !XZheng 08/20/2020 ! If true, the trapezoidal rule is called for
+    l_trapezoidal_rule_zt = .true.,    & ! If true, the trapezoidal rule is called for
                                           ! the thermodynamic-level variables output 
                                           ! from pdf_closure.  
 
-    !XZheng l_trapezoidal_rule_zm = .true.,    & ! If true, the trapezoidal rule is called for
-    l_trapezoidal_rule_zm = .false.,    & !XZheng 08/20/2020 ! If true, the trapezoidal rule is called for
+    l_trapezoidal_rule_zm = .true.,    & ! If true, the trapezoidal rule is called for
                                           ! three momentum-level variables - wpthvp,
                                           ! thlpthvp, and rtpthvp - output from pdf_closure.
 
-    !XZheng l_call_pdf_closure_twice = .true.    ! This logical flag determines whether or not to
-    l_call_pdf_closure_twice = .false. !XZheng 08/20/2020    ! This logical flag determines whether or not to
+    l_call_pdf_closure_twice = .true.    ! This logical flag determines whether or not to
                                           ! call subroutine pdf_closure twice.  If true,
                                           ! pdf_closure is called first on thermodynamic levels
                                           ! and then on momentum levels so that each variable is

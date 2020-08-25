@@ -4329,8 +4329,7 @@ module advance_xm_wpxp_module
     ! Local variables
     real( kind = core_rknd ), parameter :: &
       ! Added to prevent large damping at low altitudes where Lscale is small
-!XZheng      altitude_threshold = one_hundred  ! Altitude above which damping should occur
-      altitude_threshold = 200.0_core_rknd !XZheng 08/20/2020  ! Altitude above which damping should occur
+      altitude_threshold = one_hundred  ! Altitude above which damping should occur
 
     ! Return Variable
     real( kind = core_rknd ), dimension(gr%nz) :: damped_value

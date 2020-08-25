@@ -106,8 +106,7 @@ module advance_clubb_core_module
 
   ! Select the placement of the call to CLUBB's PDF.
   integer, parameter :: &
-    !XZheng ipdf_call_placement = ipdf_pre_advance_fields
-    ipdf_call_placement = ipdf_post_advance_fields  !XZheng 08/20/2020 
+    ipdf_call_placement = ipdf_pre_advance_fields
 
   private ! Default Scope
 
