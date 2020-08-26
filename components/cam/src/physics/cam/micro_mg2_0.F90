@@ -1208,7 +1208,7 @@ subroutine micro_mg_tend ( &
            ncic(i,k)=max(nc(i,k)/lcldm(i,k),0._r8)
 
            ! impose minimum droplet number conc (in-cloud) 
-           if (mincdnc.gt.0.) then
+           if (mincdnc.gt.0._r8) then
               ncic(i,k)=max(ncic(i,k),mincdnc/rho(i,k))
            end if
 
