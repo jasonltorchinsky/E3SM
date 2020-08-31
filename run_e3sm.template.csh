@@ -12,9 +12,9 @@
 set job_name       = A_WCYCL1850_template
 set compset        = A_WCYCL1850
 set resolution     = ne4_oQU240
-set machine        = cori
+set machine        = cori-knl
 set walltime       = default
-setenv project       default
+setenv project       m1266
 
 ### SOURCE CODE OPTIONS
 set fetch_code     = false
@@ -22,7 +22,7 @@ set e3sm_tag       = master
 set tag_name       = default
 
 ### CUSTOM CASE_NAME
-set case_name = ${machine}.${tag_name}.${job_name}.${resolution}
+set case_name = ${machine}.${tag_name}.${job_name}.${resolution}.TEST
 
 ### BUILD OPTIONS
 set debug_compile  = false
@@ -46,15 +46,15 @@ set model_start_type = initial
 set restart_files_dir = none
 
 ### DIRECTORIES
-set code_root_dir               = default
-set e3sm_simulations_dir        = default
-set case_build_dir              = default
-set case_run_dir                = default
-set short_term_archive_root_dir = default
+set code_root_dir               = /global/homes/j/$USER/MMC/E3SM
+set e3sm_simulations_dir        = /global/cscratch1/sd/$USER/E3SM_simulations
+set case_build_dir              = ${e3sm_simulations_dir}/${case_name}/build
+set case_run_dir                = ${e3sm_simulations_dir}/${case_name}/run
+set short_term_archive_root_dir = ${e3sm_simulations_dir}/${case_name}/archive
 
 ### LENGTH OF SIMULATION, RESTARTS, AND ARCHIVING
 set stop_units                  = ndays
-set stop_num                    = 1
+set stop_num                    = 5
 set restart_units               = $stop_units
 set restart_num                 = $stop_num
 set num_resubmits               = 0
