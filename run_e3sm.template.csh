@@ -12,7 +12,7 @@
 set job_name       = A_WCYCL1850_template
 set compset        = A_WCYCL1850
 set resolution     = ne4_oQU240
-set machine        = default
+set machine        = cori
 set walltime       = default
 setenv project       default
 
