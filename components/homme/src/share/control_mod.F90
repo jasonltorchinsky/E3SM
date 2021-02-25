@@ -72,17 +72,14 @@ module control_mod
                                           ! interspace a lf-trapazoidal step every LFTfreq leapfrogs    
                                           ! 0 = disabled
 
-! vert_remap_q_alg:   -1  remap without monotone filter, used for some test cases
+! vert_remap_q_alg:   -1  PPM remap without monotone filter, used for some test cases
 !                      0  Zerroukat monotonic splines
 !                      1  PPM vertical remap with mirroring at the boundaries
 !                         (solid wall bc's, high-order throughout)
-!                     10  linear extrapolation at boundaries, with limiter
-!                     11  linear extrapolation, no limiter
+!                      2  PPM, switching to piecewise constant at boundaries   
+!                     10  PPM with linear extrapolation at boundaries, with column limiter
+!                     11  PPM with unlimited linear extrapolation ab boundaries
  integer, public :: vert_remap_q_alg = 0    ! tracers
-! for vert_remap_q_alg=2, use 1st order reconstruction in
-! the specified number of layers near model top and surface
- integer, public :: vert_remap_tom = 1   
- integer, public :: vert_remap_bl = 1
 
 ! advect theta 0: conservation form 
 !              1: expanded divergence form (less noisy, non-conservative)

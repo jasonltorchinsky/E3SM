@@ -683,7 +683,6 @@ end function compute_ppm_grids
 
 !This computes a limited parabolic interpolant using a net 5-cell stencil, but the stages of computation are broken up into 3 stages
 function compute_ppm( a , dx, remap_alg )    result(coefs)
-  use control_mod, only: vert_remap_bl, vert_remap_tom
   implicit none
   real(kind=real_kind), intent(in) :: a    (    -1:nlev+2)  !Cell-mean values
   real(kind=real_kind), intent(in) :: dx   (10,  0:nlev+1)  !grid spacings
@@ -697,6 +696,12 @@ function compute_ppm( a , dx, remap_alg )    result(coefs)
   real(kind=real_kind) :: al, ar                            !Left and right interface values for cell-local limiting
   integer :: j
   integer :: indB, indE
+
+  ! for vert_remap_q_alg=2, use 1st order reconstruction in
+  ! the specified number of layers near model top and surface
+  integer :: vert_remap_tom = 1   
+  integer :: vert_remap_bl = 1
+
 
   ! Stage 1: Compute dma for each cell, allowing a 1-cell ghost stencil below and above the domain
   do j = 0 , nlev+1
