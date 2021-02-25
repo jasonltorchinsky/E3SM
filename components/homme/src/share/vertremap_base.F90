@@ -610,13 +610,8 @@ subroutine remap_Q_ppm(Qdp,nx,qsize,dp1,dp2,remap_alg)
           masso(k+1) = masso(k) + ao(k) !Accumulate the old mass. This will simplify the remapping
           ao(k) = ao(k) / dpo(k)        !Divide out the old grid spacing because we want the tracer mixing ratio, not mass.
         enddo
-        !Fill in ghost values. Ignored if remap_alg == 2
-        if (remap_alg == 1) then
-           do k = 1 , gs
-              ao(1   -k) = ao(1)
-              ao(nlev+k) = ao(nlev)
-           enddo
-        else if (remap_alg==10) then
+        !Fill in ghost values.
+        if (remap_alg==10) then
            ext(1) = minval(ao(1:nlev))
            ext(2) = maxval(ao(1:nlev))
            call linextrap(dpo(2), dpo(1), dpo(0), dpo(-1), ao(2), ao(1), ao(0), ao(-1), 1,ext(1), ext(2))
@@ -626,6 +621,14 @@ subroutine remap_Q_ppm(Qdp,nx,qsize,dp1,dp2,remap_alg)
            call linextrap(dpo(2), dpo(1), dpo(0), dpo(-1), ao(2), ao(1), ao(0), ao(-1), 0,ext(1), ext(2))
            call linextrap(dpo(nlev-1), dpo(nlev), dpo(nlev+1), dpo(nlev+2),&
                 ao(nlev-1), ao(nlev), ao(nlev+1), ao(nlev+2), 0, ext(1), ext(2))
+        else
+           !values for gs>1 are not used
+           !For remap_alg == 2 values might be used in computations that are then overwritten,
+           ! so they should be set but wont effect answer
+           do k = 1 , gs
+              ao(1   -k) = ao(1)
+              ao(nlev+k) = ao(nlev)
+           enddo
         endif
         !Compute monotonic and conservative PPM reconstruction over every cell
         coefs(:,:) = compute_ppm( ao , ppmdx, remap_alg )
