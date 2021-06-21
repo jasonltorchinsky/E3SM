@@ -123,7 +123,11 @@ contains
         !ttmp(:,:,:,5)=ttmp(:,:,:,5) !*dp_star
     
         call t_startf('vertical_remap1_1')
-        call remap1(ttmp,np,5,dp_star,dp,vert_remap_q_alg)
+        !call remap1(ttmp,np,5,dp_star,dp,vert_remap_q_alg)
+        ! Changed to use q_alg = 11 for temperature
+        call remap1(ttmp(:,:,:,1:2),np,2,dp_star,dp,10)
+        call remap1(ttmp(:,:,:,3),np,1,dp_star,dp,11)
+        call remap1(ttmp(:,:,:,4:5),np,2,dp_star,dp,10)
         call t_stopf('vertical_remap1_1')
 
         elem(ie)%state%v(:,:,1,:,np1)=ttmp(:,:,:,1)/dp
