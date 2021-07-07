@@ -1822,8 +1822,8 @@ contains
         do j=1,np
            do i=1,np
               if ( abs(elem(ie)%state%w_i(i,j,1,np1)) >1e-10) then
-                 write(iulog,*) 'WARNING: w(1) does not satisfy b.c.',ie,i,j,k
-                 write(iulog,*) 'val2 = ',elem(ie)%state%w_i(i,j,nlevp,np1)
+                 write(iulog,*) 'WARNING: w(1) does not satisfy b.c.',ie,i,j
+                 write(iulog,*) 'val2 = ',elem(ie)%state%w_i(i,j,1,np1)
               endif
            enddo
         enddo

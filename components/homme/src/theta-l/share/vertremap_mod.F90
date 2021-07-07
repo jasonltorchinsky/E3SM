@@ -168,9 +168,11 @@ contains
         elem(ie)%state%phinh_i(:,:,:,np1)=&
              elem(ie)%state%phinh_i(:,:,:,np1)+phi_ref(:,:,:)
 
-        if (hcoord==1 .and. rsplit>0) then
+        if (hcoord==1) then
            ! we are remapping to PHI ref levels, so ignore PHI remap done above:
            elem(ie)%state%phinh_i(:,:,:,np1)=elem(ie)%derived%phi_ref(:,:,:)
+           ! should not be needed, but to minimize truncation error from scan above
+           elem(ie)%state%w_i(:,:,1,np1) = 0 
         endif
 
         ! since u changed, update w b.c.:
