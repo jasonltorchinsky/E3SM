@@ -463,7 +463,7 @@ contains
        b  = a/dp3d(:,:,k)
        ck = pnh(:,:,k)/dphi(:,:,k)
        ckm1 = ck
-       if (hcoord == 2) then ! Geometric height coordinate boundary condition
+       if (hcoord == 1) then ! Geometric height coordinate boundary condition
           JacU(:,:,k) = 0
           JacD(:,:,k) = 1
        else ! Pressure coordinate boundary condition

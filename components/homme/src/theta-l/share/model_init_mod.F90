@@ -122,8 +122,8 @@ contains
 
 
     ! unit test for analytic jacobian used by IMEX methods
-#if 0
-    if (.not. theta_hydrostatic_mode .and. hcoord==0) &
+#if 1
+    if (.not. theta_hydrostatic_mode) &
          call test_imex_jacobian(elem,hybrid,hvcoord,tl,nets,nete)
 #endif
 
