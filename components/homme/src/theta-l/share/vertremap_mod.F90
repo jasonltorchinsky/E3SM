@@ -3,7 +3,7 @@
 #endif
 
 module vertremap_mod
-  use vertremap_base, only: remap1, remap1_nofilter
+  use vertremap_base, only: remap1, remap1_nofilter, mass_borrow, conv_comb
 
   use kinds, only                  : real_kind,int_kind
   use dimensions_mod, only         : np,nlev,qsize,nlevp,npsq
@@ -51,6 +51,9 @@ contains
   real (kind=real_kind), dimension(np,np,nlev)  :: dp,dp_star
   real (kind=real_kind), dimension(np,np,nlevp) :: phi_ref
   real (kind=real_kind), dimension(np,np,nlev,5)  :: ttmp
+
+  real (kind=real_kind), dimension(2,np,np,nlev) :: theta_ext ! Min, max of temperature before remapping
+  real (kind=real_kind), dimension(np,np,nlev)  :: theta_tmp ! Additional array for the linear combination
 
   call t_startf('vertical_remap')
 
@@ -123,11 +126,48 @@ contains
         !ttmp(:,:,:,5)=ttmp(:,:,:,5) !*dp_star
     
         call t_startf('vertical_remap1_1')
-        !call remap1(ttmp,np,5,dp_star,dp,vert_remap_q_alg)
-        ! Changed to use q_alg = 11 for temperature
-        call remap1(ttmp(:,:,:,1:2),np,2,dp_star,dp,10)
-        call remap1(ttmp(:,:,:,3),np,1,dp_star,dp,11)
-        call remap1(ttmp(:,:,:,4:5),np,2,dp_star,dp,10)
+        if (vert_remap_q_alg == 20) then
+          ! Use q_alg = 11 for temperature only
+          call remap1(ttmp(:,:,:,1:2),np,2,dp_star,dp,10)
+          call remap1(ttmp(:,:,:,4:5),np,2,dp_star,dp,10)
+          call remap1(ttmp(:,:,:,3),np,1,dp_star,dp,11)
+        else if (vert_remap_q_alg == 21) then
+          ! Use q_alg = 11 + mass-borrowing for temperature only
+          call remap1(ttmp(:,:,:,1:2),np,2,dp_star,dp,10)
+          call remap1(ttmp(:,:,:,4:5),np,2,dp_star,dp,10)
+          do i = 1, np
+            do j = 1, np
+              theta_ext(1,i,j,1) = minval(ttmp(i,j,1:2,3)/dp_star(i,j,1:2))
+              theta_ext(2,i,j,1) = maxval(ttmp(i,j,1:2,3)/dp_star(i,j,1:2))
+              do k = 2, nlev-1
+                theta_ext(1,i,j,k) = minval(ttmp(i,j,k-1:k+1,3)/dp_star(i,j,k-1:k+1))
+                theta_ext(2,i,j,k) = maxval(ttmp(i,j,k-1:k+1,3)/dp_star(i,j,k-1:k+1))
+              end do
+              theta_ext(1,i,j,nlev) = minval(ttmp(i,j,nlev-1:nlev,3)/dp_star(i,j,nlev-1:nlev))
+              theta_ext(2,i,j,nlev) = maxval(ttmp(i,j,nlev-1:nlev,3)/dp_star(i,j,nlev-1:nlev))
+            end do
+          end do
+          call remap1(ttmp(:,:,:,3),np,1,dp_star,dp,11)
+          call mass_borrow(ttmp(:,:,:,3),np,nlev,1,dp,theta_ext)
+        else if (vert_remap_q_alg == 22) then
+          ! Use q_alg = 11 + linear combination for temperature only
+          vert_remap_q_alg = 10
+          call remap1(ttmp(:,:,:,1:2),np,2,dp_star,dp,vert_remap_q_alg)
+          call remap1(ttmp(:,:,:,4:5),np,2,dp_star,dp,vert_remap_q_alg)
+
+          do i = 1, np
+            do j = 1, np
+              theta_ext(1,i,j,:) = minval(ttmp(i,j,:,3)/dp_star(i,j,:))
+              theta_ext(2,i,j,:) = maxval(ttmp(i,j,:,3)/dp_star(i,j,:))
+            end do
+          end do
+          theta_tmp = ttmp(:,:,:,3)
+          call remap1(theta_tmp,np,1,dp_star,dp,10)
+          call remap1(ttmp(:,:,:,3),np,1,dp_star,dp,11)
+          call conv_comb(theta_tmp,ttmp(:,:,:,3),np,nlev,1,dp,theta_ext)
+        else
+          call remap1(ttmp,np,5,dp_star,dp,vert_remap_q_alg)
+        end if
         call t_stopf('vertical_remap1_1')
 
         elem(ie)%state%v(:,:,1,:,np1)=ttmp(:,:,:,1)/dp

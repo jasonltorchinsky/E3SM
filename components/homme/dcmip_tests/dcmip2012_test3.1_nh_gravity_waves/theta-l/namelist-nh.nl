@@ -21,6 +21,7 @@
   runtype           = 0                         ! 0 = new run
   tstep             = 1.0                       ! largest timestep
   rsplit            = 0
+  vert_remap_q_alg  = 10                        ! Vetical remap algorithm
   integration       = 'explicit'                ! explicit time integration
   tstep_type        = 5                         ! 1 => default method
   nu                = 5.0e8                     ! reduced earth hyperviz

@@ -826,5 +826,277 @@ end function integrate_parabola
     endif
   end subroutine linextrap
 
+!=============================================================================
+! "Corrects" remapped solution to fall within the bounds specified via 
+! mass-borrowing. Essentially, the bounds specified should be the global
+! bounds of the original solution, and we shift mass from either side of 
+! the domain toward the interior (bot->top first, top-bot second).
+!
+! Qdp - Remapped field to be adjusted to obey bounds
+!       (NOTE: MASS not MIXING RATIO).
+! dp2 - Layer thickness (target).
+! bnds - (Min,Max) for each field q (NOTE: MIXING RATIO not MASS).
+!
+! Output - Qdp now obeying global bounds.
+!
+! TO-DO: Increase performance, parallelize with OpenMP.
+!=============================================================================
+
+  subroutine mass_borrow(Qdp, nx, nlev, qsize, dp2, bnds)
+    
+    implicit none
+
+    integer (kind=int_kind), intent(in)  :: nx, nlev, qsize
+    real (kind=real_kind), intent(inout) :: Qdp(nx, nx, nlev, qsize)
+    real (kind=real_kind), intent(in)    :: dp2(nx, nx, nlev)
+    real (kind=real_kind), intent(in)    :: bnds(2, nx, nx, nlev, qsize) ! Min/Max for each q
+    
+    !================
+    ! Local variables
+    !================
+    real (kind=real_kind)   :: mr ! Mixing ratio
+    real (kind=real_kind)   :: lbnd, ubnd ! Lower, uppoer bounds for column
+    real (kind=real_kind)   :: mr_diff ! Difference between mixing ratio and
+    ! bound of interest.
+    real (kind=real_kind)   :: ms_diff ! Mass associated with mr
+    integer (kind=int_kind) :: ii, jj, kk, ll ! Iterators.
+    integer (kind=int_kind) :: count_bot, count_top 
+    ! Keep track of how many layers we change from the bottom and from the top
+    real (kind=real_kind), parameter :: tol = 3.5e-14 ! Tolerance for floating point
+    ! comparisons.
+
+    do ii = 1, qsize
+       do kk = 1, nx
+          do ll = 1, nx
+             count_bot = 0
+             count_top = 0
+             do jj = 1, (nlev-1)/2
+                lbnd = bnds(1, ll, kk, jj, ii)
+                ubnd = bnds(2, ll, kk, jj, ii)
+                mr = Qdp(ll, kk, jj, ii)/dp2(ll, kk, jj)
+                ! bot->top
+                if (mr - ubnd > tol) then ! Too big, give to
+                   ! next layer up.
+                   mr_diff = mr - ubnd
+                   ms_diff = mr_diff * dp2(ll, kk, jj)
+                   Qdp(ll, kk, jj, ii) = Qdp(ll, kk, jj, ii) - ms_diff
+                   Qdp(ll, kk, jj+1, ii) = Qdp(ll, kk, jj+1, ii) + ms_diff
+                   count_bot = count_bot + 1
+                else if (lbnd - mr > tol) then ! Too small, take
+                   ! from next layer up.
+                   mr_diff = lbnd - mr
+                   ms_diff = mr_diff * dp2(ll, kk, jj)
+                   Qdp(ll, kk, jj, ii) = Qdp(ll, kk, jj, ii) + ms_diff
+                   Qdp(ll, kk, jj+1, ii) = Qdp(ll, kk, jj+1, ii) - ms_diff
+                   count_bot = count_bot + 1
+                end if
+
+                ! top->bot
+                lbnd = bnds(1, ll, kk, (nlev-jj+1), ii)
+                ubnd = bnds(2, ll, kk, (nlev-jj+1), ii)
+                mr = Qdp(ll, kk, (nlev-jj+1), ii)/dp2(ll, kk, (nlev-jj+1))
+                if (mr - ubnd > tol) then ! Too big,
+                   ! give to next layer down.
+                   mr_diff = mr - ubnd
+                   ms_diff = mr_diff * dp2(ll, kk, (nlev-jj+1))
+                   Qdp(ll, kk, (nlev-jj+1), ii) &
+                      & = Qdp(ll, kk, (nlev-jj+1), ii) - ms_diff
+                   Qdp(ll, kk, (nlev-jj), ii) &
+                      & = Qdp(ll, kk, (nlev-jj), ii) + ms_diff
+                   count_top = count_top + 1
+                else if (lbnd - mr > tol)  then
+                   ! Too small, take from next layer down.
+                   mr_diff = lbnd - mr
+                   ms_diff = mr_diff * dp2(ll, kk, (nlev-jj+1))
+                   Qdp(ll, kk, (nlev-jj+1), ii) &
+                      & = Qdp(ll, kk, (nlev-jj+1), ii) + ms_diff
+                   Qdp(ll, kk, (nlev-jj), ii) &
+                      & = Qdp(ll, kk, (nlev-jj), ii) - ms_diff
+                   count_top = count_top + 1
+                end if
+             end do
+         
+          print '(A, I4, I4, A, I4)', ' ~~ count_top, bot: ', count_top, &
+             & count_bot, ' of ', nlev
+          end do
+       end do
+    end do
+
+  end subroutine mass_borrow
+
+!=============================================================================
+! Returns a convex combination of q_alg = 10, q_alg = 11 to obey global
+! bounds.
+!=============================================================================
+
+  subroutine conv_comb(Qdp10, Qdp11, nx, nlev, qsize, dp2, bnds)
+    
+    implicit none
+
+    integer (kind=int_kind), intent(in)  :: nx, nlev, qsize
+    real (kind=real_kind), intent(in)    :: Qdp10(nx, nx, nlev, qsize)
+    real (kind=real_kind), intent(inout) :: Qdp11(nx, nx, nlev, qsize)
+    real (kind=real_kind), intent(in)    :: dp2(nx, nx, nlev)
+    real (kind=real_kind), intent(in)    :: bnds(2, nx, nx, qsize) ! Min/Max for each q
+    
+    !================
+    ! Local variables
+    !================
+    real (kind=real_kind)   :: mr10(nx, nx, nlev, qsize), &
+         & mr11(nx, nx, nlev, qsize) ! Mixing ratios
+    real (kind=real_kind)   :: mr_diff ! Difference between mixing ratio and
+    ! bound of interest.
+    integer (kind=int_kind) :: ii, jj, kk, ll ! Iterators.
+    real (kind=real_kind)   :: theta ! Coefficient for combination 
+    ! Keep track of how many layers we change from the bottom and from the top
+    real (kind=real_kind), parameter :: tol = 3.5e-14 ! Tolerance for floating point
+    ! comparisons.
+    real (kind=real_kind)   :: maxmr, minmr ! Maximum and minimum mixing ratios of
+    ! original data.
+    real (kind=real_kind)   :: max11, min11 ! Maximum and minimum of remapped qalg11
+    real (kind=real_kind)   :: ext10 ! Extrememum for mr10
+    integer (kind=int_kind) :: theta_cnt(4) ! Count of theta = 0, 1, ne 0 & 1, and total
+
+    ! Get mixing ratios
+    do ii = 1, qsize
+       mr10(:,:,:,ii) = Qdp10(:,:,:,ii)/dp2(:,:,:)
+       mr11(:,:,:,ii) = Qdp11(:,:,:,ii)/dp2(:,:,:)
+    end do
+
+    theta_cnt = 0
+
+    do ii = 1, qsize
+       do jj = 1, nx
+          do kk = 1, nx
+             max11 = maxval(mr11(kk, jj, :, ii))
+             min11 = minval(mr11(kk, jj, :, ii))
+
+             maxmr = bnds(2, kk, jj, ii)
+             minmr = bnds(1, kk, jj, ii)
+             
+             if ((max11 - maxmr < tol) .and. (minmr - min11 < tol)) then
+                ! Column within bounds, skip
+                theta = 1
+             else
+                if (max11 - maxmr > minmr - min11) then
+                   ! Upper bound is exceeded more than lower bound
+                   ext10 = maxval(mr10(kk, jj, :, ii))
+                   if (abs(max11 - ext10) .lt. tol) then
+                      ! Extrema are equal, go with unlimited solution
+                      theta = 1
+                   else
+                      theta = (maxmr - ext10) / (max11 - ext10)
+                   end if
+                else
+                   ext10 = minval(mr10(kk, jj, :, ii))
+                   if (abs(ext10 - min11) .lt. tol) then
+                      ! Extrema are equal, go with unlimited solution
+                      theta = 1
+                   else
+                      theta = (minmr - ext10) / (min11 - ext10)
+                   end if
+                end if            
+             end if
+
+             theta_cnt(4) = theta_cnt(4) + 1
+             if (abs(theta) .lt. tol) then
+               theta_cnt(1) = theta_cnt(1) + 1
+             else if (abs(theta - 1) .lt. tol) then
+               theta_cnt(2) = theta_cnt(2) + 1
+             else
+               theta_cnt(3) = theta_cnt(3) + 1
+             end if
+
+             if (theta .gt. 1) then
+               theta = 1
+             else if (theta .lt. 0) then
+               theta = 0
+             end if
+
+             Qdp11(kk, jj, :, ii) = theta * Qdp11(kk, jj, :, ii) &
+                  & + (1 - theta) * Qdp10(kk, jj, :, ii)
+
+          end do
+       end do
+    end do
+ 
+    print '(A,4I5)', ' ~~ theta_cnt: 0, 1, ~= 0 and 1, total: ', theta_cnt
+    
+  end subroutine conv_comb
+
+!=============================================================================
+! Obtains the common refinement grid, spacings from two original grid 
+! spacings.
+!=============================================================================
+
+  subroutine get_common_refinement(ncell, dp1, dp2, cr_ncell, cr_grid, cr_dp)
+
+    implicit none
+
+    integer (kind=int_kind),              intent(in)    :: ncell
+    real (kind=real_kind),                intent(in)    :: dp1(ncell), dp2(ncell)
+    integer (kind=int_kind),              intent(out)   :: cr_ncell
+    real (kind=real_kind),   allocatable, intent(inout) :: cr_grid(:), cr_dp(:)
+
+    real (kind=real_kind), parameter :: tol = 3.5e-15
+    real (kind=real_kind) :: grid1(0:ncell), grid2(0:ncell)
+    real (kind=real_kind) :: grid_comb(0:2*ncell+1)
+    real (kind=real_kind) :: ent1, ent2
+    integer (kind=int_kind) :: ii, idx1, idx2
+
+    ! Reconstruct grid1, grid2
+    grid1(0) = 0.0_real_kind
+    grid2(0) = 0.0_real_kind
+    do ii = 1, ncell
+       grid1(ii) = dp1(ii) + grid1(ii-1)
+       grid2(ii) = dp2(ii) + grid2(ii-1)
+    end do
+
+    ! Construct the combined grid, which we will trim down
+    cr_ncell = -1
+    idx1 = 1
+    idx2 = 1
+    grid_comb = 3.4e38_real_kind
+    grid_comb(0) = 0.0_real_kind
+    do ii = 1, 2*ncell+1
+       ent1 = grid1(idx1)
+       ent2 = grid2(idx2)
+
+       if (abs(ent1 - ent2) .lt. tol) then
+           ! Entries are equal, increment both.
+           grid_comb(ii) = ent1
+           idx1 = idx1 + 1
+           idx2 = idx2 + 1
+       else if (ent1 .lt. ent2) then
+           ! Put lesser entry into list and increment it.
+           grid_comb(ii) = ent1
+           idx1 = idx1 + 1
+       else if (ent2 .lt. ent1) then
+           ! " "
+           grid_comb(ii) = ent2
+           idx2 = idx2 + 1
+       end if
+
+       cr_ncell = cr_ncell + 1
+
+       if ((idx1 .gt. ncell) .or. (idx2 .gt. ncell)) then
+           ! If we want to look outside of the lists, we are done.
+           ! This is okay because the grids should have the same endpoints
+           exit
+       end if
+    end do
+
+    ! Get unique entries of grid_comb
+    allocate(cr_grid(0:cr_ncell))
+    allocate(cr_dp(cr_ncell))
+    cr_grid(0) = 0
+    do ii = 1, cr_ncell
+       if (grid_comb(ii) .lt. 3.4e38_real_kind) then
+          cr_grid(ii) = grid_comb(ii)
+          cr_dp(ii) = cr_grid(ii) - cr_grid(ii-1)
+       end if
+    end do
+    
+  end subroutine get_common_refinement
 
 end module vertremap_base
