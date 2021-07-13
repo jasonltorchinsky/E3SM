@@ -15,6 +15,7 @@
   runtype           = 0                         ! 0 = new run
   tstep             = 300.0                     ! largest timestep in seconds
   rsplit            = 6                         ! unstable with desired rsplit=6 - why?
+  vert_remap_q_alg  = 10
   integration       = 'explicit'                ! explicit time integration
   tstep_type        = 7                         ! 
   hv_ref_profiles   = 0
@@ -26,6 +27,7 @@
   hypervis_order    = 2                         ! 2 = hyperviscosity
   hypervis_subcycle = 1                         ! 1 = no hyperviz subcycling
   omega             = 0.0                       ! earth angular speed = 0.0
+  hcoord            = 0                         ! 0 - pressure, 1 - height
 /
 &vert_nl
   vform             = "ccm"                     ! vertical coordinate type "ccm"=hybrid pressure/terrain

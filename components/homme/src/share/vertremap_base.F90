@@ -735,7 +735,7 @@ function compute_ppm( a , dx, remap_alg )    result(coefs)
   enddo
 
   ! Switch to piecewise constant near the boundaries
-  if (remap_alg==2 .or. remap_alg==11) then
+  if (remap_alg==2) then
      do j=1,vert_remap_tom
         coefs(0,j) = a(j)
         coefs(1:2,j) = 0.D0

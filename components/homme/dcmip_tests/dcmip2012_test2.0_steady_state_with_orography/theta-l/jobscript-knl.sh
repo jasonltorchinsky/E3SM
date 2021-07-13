@@ -2,7 +2,7 @@
 #
 #   Jobscript for launching dcmip2012 test3-1 on Cori KNL
 #
-#SBATCH --job-name=d31-theta
+#SBATCH --job-name=d20-theta
 #SBATCH --output=%j.out
 #SBATCH --error=%j.err
 
@@ -14,12 +14,12 @@
 #SBATCH --mail-user=jason.torchinsky@wisc.edu
 #SBATCH --mail-type=all
 
-#SBATCH --time=0-00:30:00
+#SBATCH --time=0-00:10:00
 
 # Set variables, load modules
-echo '-- Loading modules...'
+echo '-- Loding modules...'
 OMP_NUM_THREADS=1
-EXEC=../../../test_execs/theta-l-nlev20/theta-l-nlev20
+EXEC=../../../test_execs/theta-l-nlev30/theta-l-nlev30
 module load ncl
 
 echo '-- Loaded modules.'
@@ -34,13 +34,12 @@ echo '-- Loaded modules.'
 
 #echo '-- Completed hydrostatic simulation. Creating hydrostatic plots...'
 
-#ncl plot_omega.ncl
-#ncl plot_theta.ncl
+#ncl plot_z_lon.ncl
+#ncl test200-range.ncl
 
-#mv -f test31_omega.pdf                 hydro_test31_omega.pdf
-#mv -f dcmip2012_test3_theta_diff.pdf   hydro_test3_theta_diff.pdf
-#mv -f dcmip2012_test3_theta_diff_last.pdf   hydro_test3_theta_diff_last.pdf
-#mv -f movies/dcmip2012_test31.nc       movies/hydro_dcmip2012_test31.nc
+#mv -f dcmip2012_test2_0_u_t6.00.pdf hydro_test2_0_u_z.pdf
+#mv -f movies/dcmip2012_test2_01.nc.pdf  hydro_test2_0_u.pdf
+#mv -f movies/dcmip2012_test2_01.nc  movies/hydro_dcmip2012_test2_01.nc 
 
 #echo '-- Completed hydrostatic plots.'
 
@@ -48,18 +47,19 @@ echo '-- Loaded modules.'
 # theta-nh (non-hydrostatic)
 #############################################################################
 echo '-- Running non-hydrostatic version...'
-amelist=./namelist-nh.nl
+namelist=./namelist-nh.nl
 cp -f $namelist input.nl
 srun -K -c 4 -N $SLURM_NNODES  $EXEC < input.nl
 
 echo '-- Completed non-hydrostatic simulation. Creating non-hydrostatic plots...'
 
-ncl plot_omega.ncl
-ncl plot_theta.ncl
+ncl plot_z_lon.ncl
+ncl test200-range.ncl
 
-mv -f test31_omega.pdf                 nonhydro_test31_omega.pdf
-mv -f dcmip2012_test3_theta_diff.pdf   nonhydro_test3_theta_diff.pdf  
-mv -f dcmip2012_test3_theta_diff_last.pdf   nonhydro_test3_theta_diff_last.pdf  
-mv -f movies/dcmip2012_test31.nc        movies/nonhydro_dcmip2012_test31.nc 
+mv -f dcmip2012_test2_0_u_t6.00.pdf nonhydro_test2_0_u_t6.00.pdf
+mv -f movies/dcmip2012_test2_01.nc.pdf  nonhydro_test2_0_u.pdf
+mv -f movies/dcmip2012_test2_01.nc  movies/nonhydro_dcmip2012_test2_01.nc 
 
 echo '-- Completed non-hydrostatic plots. Job complete!'
+
+

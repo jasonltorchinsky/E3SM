@@ -806,7 +806,7 @@ IMPLICIT NONE
 
 	real(8),  intent(in)    :: lon        ! Longitude (radians)
   real(8),  intent(in)    :: lat        ! Latitude (radians)
-  real(8),  intent(in)    :: z          ! Height (m)
+  real(8),  intent(inout)    :: z          ! Height (m)
   real(8),  intent(in)    :: hyam       ! A coefficient for hybrid-eta coordinate, at model level midpoint
   real(8),  intent(in)    :: hybm       ! B coefficient for hybrid-eta coordinate, at model level midpoint
 	logical,  intent(in)    :: hybrid_eta ! if true,p from hybrid coeff. if false, p is precomputed
@@ -821,18 +821,18 @@ IMPLICIT NONE
   real(8),  intent(out)   :: rho        ! density (kg m^-3)
   real(8),  intent(out)   :: q          ! Specific Humidity (kg/kg)
 
-	! if zcoords = 1, then we use z and output p
-	! if zcoords = 0, then we compute or use p
-	! In hybrid-eta coords: p = hyam p0 + hybm ps
+  ! if zcoords = 1, then we use z and output p
+  ! if zcoords = 0, then we compute or use p
+  ! In hybrid-eta coords: p = hyam p0 + hybm ps
 
   !-----------------------------------------------------------------------
   !     test case parameters
   !----------------------------------------------------------------------- 
-	real(8), parameter ::&
-      T0      = 300.d0,       &	! temperature (K)
+  real(8), parameter ::&
+      T0      = 300.d0,       & ! temperature (K)
       gamma   = 0.0065d0,     & ! temperature lapse rate (K/m)
-      lambdam = 3.d0*pi/2.d0,	&	! mountain longitude center point (radians)
-      phim    = 0.d0,         &	! mountain latitude center point (radians)
+      lambdam = 3.d0*pi/2.d0, & ! mountain longitude center point (radians)
+      phim    = 0.d0,         & ! mountain latitude center point (radians)
       ztop    = 12000.d0        ! model top (m)
       !h0      = 2000.d0,      &! peak height of the mountain range (m)
       !Rm      = 3.d0*pi/4.d0, &! mountain radius (radians)
@@ -859,61 +859,59 @@ IMPLICIT NONE
   !    PHIS (surface geopotential)
   !-----------------------------------------------------------------------
 
-	r   = acos( sin(phim)*sin(lat) + cos(phim)*cos(lat)*cos(lon - lambdam) )
+  r   = acos( sin(phim)*sin(lat) + cos(phim)*cos(lat)*cos(lon - lambdam) )
 
   zs  = 0.d0
   if (r < Rm) zs=(h0/2.d0)*(1.d0+cos(pi*r/Rm))*cos(pi*r/zetam)**2.d0    ! mountain height
 
-	phis = g*zs
+  phis = g*zs
 
   !-----------------------------------------------------------------------
   !    PS (surface pressure)
   !-----------------------------------------------------------------------
 
-	ps = p0 * (1.d0 - gamma/T0*zs)**exponent
+  ps = p0 * (1.d0 - gamma/T0*zs)**exponent
 
   !-----------------------------------------------------------------------
   !    HEIGHT AND PRESSURE
   !-----------------------------------------------------------------------
 
-	! Height and pressure are aligned (p = p0 * (1.d0 - gamma/T0*z)**exponent)
+  ! Height and pressure are aligned (p = p0 * (1.d0 - gamma/T0*z)**exponent)
+  if (zcoords .eq. 0) then
+     p = hyam*p0 + hybm*ps              ! compute the pressure based on the surface pressure and hybrid coefficients
+     height = T0/gamma * (1.d0 - (p/p0)**exponent_rev)  ! compute the height at this pressure
+     z = height
+  else if (zcoords .eq. 1) then
+     z = hyam*ztop + hybm*zs
+     height = z
+     p = p0 * (1.d0 - gamma/T0*z)**exponent
+  endif
 
-	if (zcoords .eq. 1) then
-		height = z
-		p = p0 * (1.d0 - gamma/T0*z)**exponent
+  !-----------------------------------------------------------------------
+  !    THE VELOCITIES ARE ZERO (STATE AT REST)
+  !-----------------------------------------------------------------------
 
-	else
-
-    if (hybrid_eta) p = hyam*p0 + hybm*ps              ! compute the pressure based on the surface pressure and hybrid coefficients
-		height = T0/gamma * (1.d0 - (p/p0)**exponent_rev)  ! compute the height at this pressure
-
-	endif
-
-!-----------------------------------------------------------------------
-!    THE VELOCITIES ARE ZERO (STATE AT REST)
-!-----------------------------------------------------------------------
-
-	u = 0.d0    ! Zonal Velocity
-	v = 0.d0    ! Meridional Velocity
+  u = 0.d0    ! Zonal Velocity
+  v = 0.d0    ! Meridional Velocity
   w = 0.d0    ! Vertical Velocity
 
-!-----------------------------------------------------------------------
-!    TEMPERATURE WITH CONSTANT LAPSE RATE
-!-----------------------------------------------------------------------
+  !-----------------------------------------------------------------------
+  !    TEMPERATURE WITH CONSTANT LAPSE RATE
+  !-----------------------------------------------------------------------
 
-	t = T0 - gamma*height
+  t = T0 - gamma*height
 
-!-----------------------------------------------------------------------
-!    RHO (density)
-!-----------------------------------------------------------------------
+  !-----------------------------------------------------------------------
+  !    RHO (density)
+  !-----------------------------------------------------------------------
 
-	rho = p/(Rd*t)
+  rho = p/(Rd*t)
 
-!-----------------------------------------------------------------------
-!     initialize Q, set to zero 
-!-----------------------------------------------------------------------
+  !-----------------------------------------------------------------------
+  !     initialize Q, set to zero 
+  !-----------------------------------------------------------------------
 
-	q = 0.d0
+  q = 0.d0
 
 END SUBROUTINE test2_steady_state_mountain
 

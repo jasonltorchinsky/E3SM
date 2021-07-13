@@ -343,7 +343,7 @@ subroutine dcmip2012_test2_0(elem,hybrid,hvcoord,nets,nete)
   type(hvcoord_t),    intent(inout)         :: hvcoord                  ! hybrid vertical coordinates
   integer,            intent(in)            :: nets,nete                ! start, end element index
 
-  integer,  parameter :: zcoords = 0                                    ! we are not using z coords
+  integer             :: zcoords                                    ! we are not using z coords
   logical,  parameter :: use_eta = .true.                               ! we are using hybrid eta coords
   real(rl), parameter ::      &
       T0      = 300.d0,       &                                         ! temperature (K)
@@ -357,32 +357,44 @@ subroutine dcmip2012_test2_0(elem,hybrid,hvcoord,nets,nete)
   real(rl):: dpp(np,np,nlev), he
 
   if (hybrid%masterthread) write(iulog,*) 'initializing dcmip2012 test 2-0: steady state atmosphere with orography'
+  zcoords = hcoord ! 0 - pressure, 1 - height
 
   ! set analytic vertical coordinates
-  call get_evenly_spaced_z(zi,zm, 0.0_rl,ztop)                                    ! get evenly spaced z levels
+  call get_evenly_spaced_z(zi, zm, 0.0_rl, ztop)                          ! get evenly spaced z levels
   hvcoord%etai  = (1.d0 - gamma/T0*zi)**exponent                        ! set eta levels from z in orography-free region
   call set_hybrid_coefficients(hvcoord,hybrid,  hvcoord%etai(1), 1.0_rl)! set hybrid A and B from eta levels
   call set_layer_locations(hvcoord, .true., hybrid%masterthread)
 
   ! set initial conditions
   do ie = nets,nete; 
-     do k=1,nlev; do j=1,np; do i=1,np
-        call get_coordinates(lat,lon,hyam,hybm, i,j,k,elem(ie),hvcoord)
-        call test2_steady_state_mountain(lon,lat,p,z,zcoords,use_eta,hyam,hybm,u,v,w,T,phis,ps,rho,q(1))
-        dp = pressure_thickness(ps,k,hvcoord)
-        !let's get an analytical \phi
-        he = (T0 - T)/gamma
-        call set_state(u,v,w,T,ps,phis,p,dp,he,g, i,j,k,elem(ie),1,nt)
-        call set_tracers(q,qsize,dp,i,j,k,lat,lon,elem(ie))
-     enddo; enddo; enddo; 
-     do k=1,nlevp; do j=1,np; do i=1,np
-        call get_coordinates(lat,lon,hyai,hybi, i,j,k,elem(ie),hvcoord)
-        call test2_steady_state_mountain(lon,lat,p,z,zcoords,use_eta,hyai,hybi,u,v,w,T,phis,ps,rho,q(1))
-        !let's get an analytical \phi
-        he = (T0 - T)/gamma
-        call set_state_i(u,v,w,T,ps,phis,p,he,g, i,j,k,elem(ie),1,nt)
-     enddo; enddo; enddo; 
-     call tests_finalize(elem(ie),hvcoord)
+     do j=1,np; do i=1,np
+        do k=1,nlevp
+           call get_coordinates(lat,lon,hyai,hybi, i,j,k,elem(ie),hvcoord)
+           call test2_steady_state_mountain(lon,lat,p,z,zcoords,use_eta,hyai,hybi,u,v,w,T,phis,ps,rho,q(1))
+           if (zcoords == 0) then
+              he = (T0 - T)/gamma
+           else
+              zi(k) = z
+              he = z
+           end if
+           call set_state_i(u,v,w,T,ps,phis,p,he,g, i,j,k,elem(ie),1,nt)
+        enddo
+        do k=1,nlev
+           call get_coordinates(lat,lon,hyam,hybm, i,j,k,elem(ie),hvcoord)
+           call test2_steady_state_mountain(lon,lat,p,z,zcoords,use_eta,hyam,hybm,u,v,w,T,phis,ps,rho,q(1))
+           if (zcoords == 0) then
+              dp = pressure_thickness(ps,k,hvcoord)
+              he = (T0 - T)/gamma
+           else
+              dp = -rho*g*(zi(k+1)-zi(k))
+              he = z
+           end if
+           call set_state(u,v,w,T,ps,phis,p,dp,he,g, i,j,k,elem(ie),1,nt)
+           call set_tracers(q,qsize,dp,i,j,k,lat,lon,elem(ie))
+        enddo
+     enddo; enddo 
+     ! Don't enforce hydrostatic balance for height coord
+     if (hcoord == 0) call tests_finalize(elem(ie),hvcoord)
   enddo
   
   end subroutine dcmip2012_test2_0
