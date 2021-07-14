@@ -100,8 +100,10 @@ subroutine remap1(Qdp,nx,qsize,dp1,dp2,remap_alg)
   logical :: abrtf=.false.
 
   q = remap_alg
-  if ( (q.ne.-1) .and. (q.ne.0) .and. (q.ne.1) .and. (q.ne.10) .and. (q.ne.11) )&
-     call abortmp('Bad remap_alg value. Use -1, 0, 1, 10 or 11.')
+  if (         (q .ne. -1) .and. (q .ne.  0) .and. (q .ne.  1) &
+       & .and. (q .ne. 10) .and. (q .ne. 11) .and. (q .ne. 12) ) then
+     call abortmp('Bad remap_alg value. Use -1, 0, 1, 10, 11, or 12.')
+  end if
 
   if (remap_alg == -1) then
      call remap1_nofilter(qdp,nx,qsize,dp1,dp2)
@@ -611,13 +613,13 @@ subroutine remap_Q_ppm(Qdp,nx,qsize,dp1,dp2,remap_alg)
           ao(k) = ao(k) / dpo(k)        !Divide out the old grid spacing because we want the tracer mixing ratio, not mass.
         enddo
         !Fill in ghost values.
-        if (remap_alg==10) then
+        if (remap_alg == 10) then
            ext(1) = minval(ao(1:nlev))
            ext(2) = maxval(ao(1:nlev))
            call linextrap(dpo(2), dpo(1), dpo(0), dpo(-1), ao(2), ao(1), ao(0), ao(-1), 1,ext(1), ext(2))
            call linextrap(dpo(nlev-1), dpo(nlev), dpo(nlev+1), dpo(nlev+2),&
                 ao(nlev-1), ao(nlev), ao(nlev+1), ao(nlev+2), 1, ext(1), ext(2))
-        else if (remap_alg==11) then
+        else if (remap_alg == 11 .or. remap_alg == 12) then
            call linextrap(dpo(2), dpo(1), dpo(0), dpo(-1), ao(2), ao(1), ao(0), ao(-1), 0,ext(1), ext(2))
            call linextrap(dpo(nlev-1), dpo(nlev), dpo(nlev+1), dpo(nlev+2),&
                 ao(nlev-1), ao(nlev), ao(nlev+1), ao(nlev+2), 0, ext(1), ext(2))
@@ -734,8 +736,8 @@ function compute_ppm( a , dx, remap_alg )    result(coefs)
     coefs(2,j) = 3. * (-2. * a(j) + ( al + ar ))
   enddo
 
-  ! switcht to piecewise constant near the boundaries
-  if (remap_alg==2) then
+  ! Switch to piecewise constant near the boundaries
+  if (remap_alg == 2 .or. remap_alg == 12) then
      do j=1,vert_remap_tom
         coefs(0,j) = a(j)
         coefs(1:2,j) = 0.D0
@@ -916,8 +918,8 @@ end function integrate_parabola
                 end if
              end do
          
-          print '(A, I4, I4, A, I4)', ' ~~ count_top, bot: ', count_top, &
-             & count_bot, ' of ', nlev
+          ! print '(A, I4, I4, A, I4)', ' ~~ count_top, bot: ', count_top, &
+          !   & count_bot, ' of ', nlev
           end do
        end do
     end do
@@ -1020,83 +1022,71 @@ end function integrate_parabola
        end do
     end do
  
-    print '(A,4I5)', ' ~~ theta_cnt: 0, 1, ~= 0 and 1, total: ', theta_cnt
+    ! print '(A,4I5)', ' ~~ theta_cnt: 0, 1, ~= 0 and 1, total: ', theta_cnt
     
   end subroutine conv_comb
 
 !=============================================================================
-! Obtains the common refinement grid, spacings from two original grid 
-! spacings.
+! Returns the domain of dependence of each cell in the target grid
 !=============================================================================
 
-  subroutine get_common_refinement(ncell, dp1, dp2, cr_ncell, cr_grid, cr_dp)
+  subroutine get_dom_of_dep(ncell, dp1, dp2, ext, cell_dod)
 
     implicit none
 
-    integer (kind=int_kind),              intent(in)    :: ncell
-    real (kind=real_kind),                intent(in)    :: dp1(ncell), dp2(ncell)
-    integer (kind=int_kind),              intent(out)   :: cr_ncell
-    real (kind=real_kind),   allocatable, intent(inout) :: cr_grid(:), cr_dp(:)
+    integer (kind=int_kind), intent(in)  :: ncell
+    real (kind=real_kind),   intent(in)  :: dp1(ncell), dp2(ncell)
+    integer (kind=int_kind), intent(in)  :: ext ! How far to extend DoD past
+    ! cell intersections.
+    integer (kind=int_kind), intent(out) :: cell_dod(2, ncell)
 
     real (kind=real_kind), parameter :: tol = 3.5e-15
     real (kind=real_kind) :: grid1(0:ncell), grid2(0:ncell)
-    real (kind=real_kind) :: grid_comb(0:2*ncell+1)
-    real (kind=real_kind) :: ent1, ent2
-    integer (kind=int_kind) :: ii, idx1, idx2
+    integer (kind=int_kind) :: jj, kk, kidx
 
     ! Reconstruct grid1, grid2
     grid1(0) = 0.0_real_kind
     grid2(0) = 0.0_real_kind
-    do ii = 1, ncell
-       grid1(ii) = dp1(ii) + grid1(ii-1)
-       grid2(ii) = dp2(ii) + grid2(ii-1)
+    do kk = 1, ncell
+       grid1(kk) = dp1(kk) + grid1(kk-1)
+       grid2(kk) = dp2(kk) + grid2(kk-1)
     end do
 
-    ! Construct the combined grid, which we will trim down
-    cr_ncell = -1
-    idx1 = 1
-    idx2 = 1
-    grid_comb = 3.4e38_real_kind
-    grid_comb(0) = 0.0_real_kind
-    do ii = 1, 2*ncell+1
-       ent1 = grid1(idx1)
-       ent2 = grid2(idx2)
+    ! Iterate through the source and target grid to get the location
+    ! of the left and right target cell interfaces on the old grid.
+    cell_dod(1, 1) = 1 ! Left bound of first new cell is in first old cell
+    kidx = 1 ! Cell of old grid were are checking the right boundary of
+    do jj = 1, ncell-1 ! Loop through all cells of new grid
+       do kk = kidx, ncell ! Loop through all cell boundaries of new grid
+          if (grid2(jj) .le. grid1(kk)) then ! In the kkth cell
+             cell_dod(2, jj) = kk
+             cell_dod(1, jj+1) = kk ! Left bound of next cell is same as 
+                                    ! right boundary of current cell
+             kidx = kk
+             exit
+          end if
+       end do
+    end do
+    cell_dod(2, ncell) = ncell ! Right bound of last new cell in last old cell.
 
-       if (abs(ent1 - ent2) .lt. tol) then
-           ! Entries are equal, increment both.
-           grid_comb(ii) = ent1
-           idx1 = idx1 + 1
-           idx2 = idx2 + 1
-       else if (ent1 .lt. ent2) then
-           ! Put lesser entry into list and increment it.
-           grid_comb(ii) = ent1
-           idx1 = idx1 + 1
-       else if (ent2 .lt. ent1) then
-           ! " "
-           grid_comb(ii) = ent2
-           idx2 = idx2 + 1
+    ! Domain of dependence might be further out than intersections.
+    do kk = 1, ncell
+       ! If we can move the dod by the ext amount while staying in the 
+       ! domain, we do so.
+       if (cell_dod(1, kk) - ext .ge. 1) then
+          cell_dod(1, kk) = cell_dod(1, kk) - ext
+       else
+          cell_dod(1, kk) = 1
        end if
 
-       cr_ncell = cr_ncell + 1
-
-       if ((idx1 .gt. ncell) .or. (idx2 .gt. ncell)) then
-           ! If we want to look outside of the lists, we are done.
-           ! This is okay because the grids should have the same endpoints
-           exit
+       if (cell_dod(2, kk) + ext .le. ncell) then
+          cell_dod(2, kk) = cell_dod(2, kk) + ext
+       else
+          cell_dod(2, kk) = ncell
        end if
     end do
 
-    ! Get unique entries of grid_comb
-    allocate(cr_grid(0:cr_ncell))
-    allocate(cr_dp(cr_ncell))
-    cr_grid(0) = 0
-    do ii = 1, cr_ncell
-       if (grid_comb(ii) .lt. 3.4e38_real_kind) then
-          cr_grid(ii) = grid_comb(ii)
-          cr_dp(ii) = cr_grid(ii) - cr_grid(ii-1)
-       end if
-    end do
-    
-  end subroutine get_common_refinement
+      
+  end subroutine get_dom_of_dep
 
 end module vertremap_base

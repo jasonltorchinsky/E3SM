@@ -3,7 +3,8 @@
 #endif
 
 module vertremap_mod
-  use vertremap_base, only: remap1, remap1_nofilter, mass_borrow, conv_comb
+  use vertremap_base, only: remap1, remap1_nofilter, mass_borrow, conv_comb, &
+                            get_dom_of_dep
 
   use kinds, only                  : real_kind,int_kind
   use dimensions_mod, only         : np,nlev,qsize,nlevp,npsq
@@ -11,7 +12,7 @@ module vertremap_mod
   use element_mod, only            : element_t
   use perf_mod, only               : t_startf, t_stopf  ! _EXTERNAL
   use parallel_mod, only           : abortmp, parallel_t
-  use control_mod, only : vert_remap_q_alg
+  use control_mod, only            : vert_remap_q_alg
   use eos, only : phi_from_eos
   implicit none
   private
@@ -54,7 +55,7 @@ contains
 
   real (kind=real_kind), dimension(2,np,np,nlev) :: theta_ext ! Min, max of temperature before remapping
   real (kind=real_kind), dimension(np,np,nlev)  :: theta_tmp ! Additional array for the linear combination
-
+  integer (kind = int_kind), dimension(2, nlev) :: cell_dod ! Domain of dependence of each target cell
   call t_startf('vertical_remap')
 
   ! reference levels:
@@ -126,6 +127,9 @@ contains
         !ttmp(:,:,:,5)=ttmp(:,:,:,5) !*dp_star
     
         call t_startf('vertical_remap1_1')
+        if (hybrid%masterthread) then
+           print *, "Original T col 1,1: ", ttmp(1,1,:,3)
+        endif
         if (vert_remap_q_alg == 20) then
           ! Use q_alg = 11 for temperature only
           call remap1(ttmp(:,:,:,1:2),np,2,dp_star,dp,10)
@@ -135,16 +139,15 @@ contains
           ! Use q_alg = 11 + mass-borrowing for temperature only
           call remap1(ttmp(:,:,:,1:2),np,2,dp_star,dp,10)
           call remap1(ttmp(:,:,:,4:5),np,2,dp_star,dp,10)
+          call get_dom_of_dep(nlev, dp_star, dp, 2, cell_dod)
           do i = 1, np
             do j = 1, np
-              theta_ext(1,i,j,1) = minval(ttmp(i,j,1:2,3)/dp_star(i,j,1:2))
-              theta_ext(2,i,j,1) = maxval(ttmp(i,j,1:2,3)/dp_star(i,j,1:2))
-              do k = 2, nlev-1
-                theta_ext(1,i,j,k) = minval(ttmp(i,j,k-1:k+1,3)/dp_star(i,j,k-1:k+1))
-                theta_ext(2,i,j,k) = maxval(ttmp(i,j,k-1:k+1,3)/dp_star(i,j,k-1:k+1))
+              do k = 1, nlev
+                theta_ext(1,i,j,k) = minval( ttmp(i,j,cell_dod(1,k):cell_dod(2,k),3) &
+                                             & / dp_star(i,j,cell_dod(1,k):cell_dod(2,k)) )
+                theta_ext(2,i,j,k) = maxval( ttmp(i,j,cell_dod(1,k):cell_dod(2,k),3) &
+                                             & / dp_star(i,j,cell_dod(1,k):cell_dod(2,k)) )
               end do
-              theta_ext(1,i,j,nlev) = minval(ttmp(i,j,nlev-1:nlev,3)/dp_star(i,j,nlev-1:nlev))
-              theta_ext(2,i,j,nlev) = maxval(ttmp(i,j,nlev-1:nlev,3)/dp_star(i,j,nlev-1:nlev))
             end do
           end do
           call remap1(ttmp(:,:,:,3),np,1,dp_star,dp,11)
@@ -168,7 +171,10 @@ contains
         else
           call remap1(ttmp,np,5,dp_star,dp,vert_remap_q_alg)
         end if
-        call t_stopf('vertical_remap1_1')
+        if (hybrid%masterthread) then
+           print *, "Remapped T col 1,1: ", ttmp(1,1,:,3)
+        endif
+       call t_stopf('vertical_remap1_1')
 
         elem(ie)%state%v(:,:,1,:,np1)=ttmp(:,:,:,1)/dp
         elem(ie)%state%v(:,:,2,:,np1)=ttmp(:,:,:,2)/dp
