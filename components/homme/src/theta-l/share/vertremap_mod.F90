@@ -4,7 +4,7 @@
 
 module vertremap_mod
   use vertremap_base, only: remap1, remap1_nofilter, mass_borrow, conv_comb, &
-                            get_dom_of_dep
+                            get_dom_of_dep, is_bounded
 
   use kinds, only                  : real_kind,int_kind
   use dimensions_mod, only         : np,nlev,qsize,nlevp,npsq
@@ -56,6 +56,7 @@ contains
   real (kind=real_kind), dimension(2,np,np,nlev) :: theta_ext ! Min, max of temperature before remapping
   real (kind=real_kind), dimension(np,np,nlev)  :: theta_tmp ! Additional array for the linear combination
   integer (kind = int_kind), dimension(2, nlev) :: cell_dod ! Domain of dependence of each target cell
+  logical :: bflag = .true.
   call t_startf('vertical_remap')
 
   ! reference levels:
@@ -128,7 +129,7 @@ contains
     
         call t_startf('vertical_remap1_1')
         if (hybrid%masterthread) then
-           print *, "Original T col 1,1: ", ttmp(1,1,:,3)
+           print *, "Original T col 1,1: ", ttmp(1,1,:,3)/dp(1,1,:)
         endif
         if (vert_remap_q_alg == 20) then
           ! Use q_alg = 11 for temperature only
@@ -136,7 +137,7 @@ contains
           call remap1(ttmp(:,:,:,4:5),np,2,dp_star,dp,10)
           call remap1(ttmp(:,:,:,3),np,1,dp_star,dp,11)
         else if (vert_remap_q_alg == 21) then
-          ! Use q_alg = 11 + mass-borrowing for temperature only
+          ! Use q_alg = 11 + local-bounds mass-borrowing for temperature only
           call remap1(ttmp(:,:,:,1:2),np,2,dp_star,dp,10)
           call remap1(ttmp(:,:,:,4:5),np,2,dp_star,dp,10)
           call get_dom_of_dep(nlev, dp_star, dp, 2, cell_dod)
@@ -152,7 +153,38 @@ contains
           end do
           call remap1(ttmp(:,:,:,3),np,1,dp_star,dp,11)
           call mass_borrow(ttmp(:,:,:,3),np,nlev,1,dp,theta_ext)
+
+          call is_bounded(hybrid, ttmp(:,:,:,3), np, nlev, 1, dp, theta_ext, bflag)
+
+          if (hybrid%masterthread) then
+             print *, 'Remapped solution is bounded: ', bflag
+          end if
+
         else if (vert_remap_q_alg == 22) then
+          ! Use q_alg = 11 + global-bounds mass-borrowing for temperature only
+          call remap1(ttmp(:,:,:,1:2),np,2,dp_star,dp,10)
+          call remap1(ttmp(:,:,:,4:5),np,2,dp_star,dp,10)
+          do i = 1, np
+            do j = 1, np
+              theta_ext(1,i,j,:) = minval( ttmp(i,j,:,3) / dp_star(i,j,:) )
+              theta_ext(2,i,j,:) = maxval( ttmp(i,j,:,3) / dp_star(i,j,:) )
+            end do
+          end do
+
+          if (hybrid%masterthread) then
+             print *, " Extrema for column 1: ", theta_ext(:,1,1,1)
+          end if
+
+          call remap1(ttmp(:,:,:,3),np,1,dp_star,dp,11)
+          call mass_borrow(ttmp(:,:,:,3),np,nlev,1,dp,theta_ext)
+
+          call is_bounded(hybrid, ttmp(:,:,:,3), np, nlev, 1, dp, theta_ext, bflag)
+
+          if (hybrid%masterthread) then
+             print *, 'Remapped solution is bounded: ', bflag
+          end if
+
+        else if (vert_remap_q_alg == 23) then
           ! Use q_alg = 11 + linear combination for temperature only
           vert_remap_q_alg = 10
           call remap1(ttmp(:,:,:,1:2),np,2,dp_star,dp,vert_remap_q_alg)
@@ -169,12 +201,25 @@ contains
           call remap1(ttmp(:,:,:,3),np,1,dp_star,dp,11)
           call conv_comb(theta_tmp,ttmp(:,:,:,3),np,nlev,1,dp,theta_ext)
         else
+          do i = 1, np
+            do j = 1, np
+              theta_ext(1,i,j,:) = minval( ttmp(i,j,:,3) / dp_star(i,j,:) )
+              theta_ext(2,i,j,:) = maxval( ttmp(i,j,:,3) / dp_star(i,j,:) )
+            end do
+          end do
+
           call remap1(ttmp,np,5,dp_star,dp,vert_remap_q_alg)
+
+          call is_bounded(hybrid, ttmp(:,:,:,3), np, nlev, 1, dp, theta_ext, bflag)
+
+          if (hybrid%masterthread) then
+             print *, 'Remapped solution is bounded: ', bflag
+          end if
         end if
         if (hybrid%masterthread) then
-           print *, "Remapped T col 1,1: ", ttmp(1,1,:,3)
+           print *, "Remapped T col 1,1: ", ttmp(1,1,:,3)/dp(1,1,:)
         endif
-       call t_stopf('vertical_remap1_1')
+        call t_stopf('vertical_remap1_1')
 
         elem(ie)%state%v(:,:,1,:,np1)=ttmp(:,:,:,1)/dp
         elem(ie)%state%v(:,:,2,:,np1)=ttmp(:,:,:,2)/dp

@@ -867,53 +867,53 @@ end function integrate_parabola
     real (kind=real_kind), parameter :: tol = 3.5e-14 ! Tolerance for floating point
     ! comparisons.
 
-    do ii = 1, qsize
-       do kk = 1, nx
-          do ll = 1, nx
+    do ll = 1, qsize
+       do ii = 1, nx
+          do jj = 1, nx
              count_bot = 0
              count_top = 0
-             do jj = 1, (nlev-1)/2
-                lbnd = bnds(1, ll, kk, jj, ii)
-                ubnd = bnds(2, ll, kk, jj, ii)
-                mr = Qdp(ll, kk, jj, ii)/dp2(ll, kk, jj)
+             do kk = 1, (nlev-1)/2
+                lbnd = bnds(1, ii, jj, kk, ll)
+                ubnd = bnds(2, ii, jj, kk, ll)
+                mr = Qdp(ii, jj, kk, ll)/dp2(ii, jj, kk)
                 ! bot->top
                 if (mr - ubnd > tol) then ! Too big, give to
                    ! next layer up.
                    mr_diff = mr - ubnd
-                   ms_diff = mr_diff * dp2(ll, kk, jj)
-                   Qdp(ll, kk, jj, ii) = Qdp(ll, kk, jj, ii) - ms_diff
-                   Qdp(ll, kk, jj+1, ii) = Qdp(ll, kk, jj+1, ii) + ms_diff
+                   ms_diff = mr_diff * dp2(ii, jj, kk)
+                   Qdp(ii, jj, kk, ll) = Qdp(ii, jj, kk, ll) - ms_diff
+                   Qdp(ii, jj, kk+1, ll) = Qdp(ii, jj, kk+1, ll) + ms_diff
                    count_bot = count_bot + 1
                 else if (lbnd - mr > tol) then ! Too small, take
                    ! from next layer up.
                    mr_diff = lbnd - mr
-                   ms_diff = mr_diff * dp2(ll, kk, jj)
-                   Qdp(ll, kk, jj, ii) = Qdp(ll, kk, jj, ii) + ms_diff
-                   Qdp(ll, kk, jj+1, ii) = Qdp(ll, kk, jj+1, ii) - ms_diff
+                   ms_diff = mr_diff * dp2(ii, jj, kk)
+                   Qdp(ii, jj, kk, ll) = Qdp(ii, jj, kk, ll) + ms_diff
+                   Qdp(ii, jj, kk+1, ll) = Qdp(ii, jj, kk+1, ll) - ms_diff
                    count_bot = count_bot + 1
                 end if
 
                 ! top->bot
-                lbnd = bnds(1, ll, kk, (nlev-jj+1), ii)
-                ubnd = bnds(2, ll, kk, (nlev-jj+1), ii)
-                mr = Qdp(ll, kk, (nlev-jj+1), ii)/dp2(ll, kk, (nlev-jj+1))
+                lbnd = bnds(1, ii, jj, (nlev-kk+1), ll)
+                ubnd = bnds(2, ii, jj, (nlev-kk+1), ll)
+                mr = Qdp(ii, jj, (nlev-kk+1), ll)/dp2(ii, jj, (nlev-kk+1))
                 if (mr - ubnd > tol) then ! Too big,
                    ! give to next layer down.
                    mr_diff = mr - ubnd
-                   ms_diff = mr_diff * dp2(ll, kk, (nlev-jj+1))
-                   Qdp(ll, kk, (nlev-jj+1), ii) &
-                      & = Qdp(ll, kk, (nlev-jj+1), ii) - ms_diff
-                   Qdp(ll, kk, (nlev-jj), ii) &
-                      & = Qdp(ll, kk, (nlev-jj), ii) + ms_diff
+                   ms_diff = mr_diff * dp2(ii, jj, (nlev-kk+1))
+                   Qdp(ii, jj, (nlev-kk+1), ll) &
+                      & = Qdp(ii, jj, (nlev-kk+1), ll) - ms_diff
+                   Qdp(ii, jj, (nlev-kk), ll) &
+                      & = Qdp(ii, jj, (nlev-kk), ll) + ms_diff
                    count_top = count_top + 1
                 else if (lbnd - mr > tol)  then
                    ! Too small, take from next layer down.
                    mr_diff = lbnd - mr
-                   ms_diff = mr_diff * dp2(ll, kk, (nlev-jj+1))
-                   Qdp(ll, kk, (nlev-jj+1), ii) &
-                      & = Qdp(ll, kk, (nlev-jj+1), ii) + ms_diff
-                   Qdp(ll, kk, (nlev-jj), ii) &
-                      & = Qdp(ll, kk, (nlev-jj), ii) - ms_diff
+                   ms_diff = mr_diff * dp2(ii, jj, (nlev-kk+1))
+                   Qdp(ii, jj, (nlev-kk+1), ll) &
+                      & = Qdp(ii, jj, (nlev-kk+1), ll) + ms_diff
+                   Qdp(ii, jj, (nlev-kk), ll) &
+                      & = Qdp(ii, jj, (nlev-kk), ll) - ms_diff
                    count_top = count_top + 1
                 end if
              end do
@@ -1088,5 +1088,58 @@ end function integrate_parabola
 
       
   end subroutine get_dom_of_dep
+
+!=============================================================================
+! Checks that the remapped solution obeys the global bounds. 
+!=============================================================================
+
+  subroutine is_bounded(hybrid, Qdp, nx, nlev, qsize, dp2, bnds, res)
+    
+    use hybrid_mod, only: hybrid_t
+
+    implicit none
+
+    type (hybrid_t),         intent(in)  :: hybrid  ! distributed parallel structure (shared)
+    integer (kind=int_kind), intent(in)  :: nx, nlev, qsize
+    real (kind=real_kind),   intent(in)  :: Qdp(nx, nx, nlev, qsize)
+    real (kind=real_kind),   intent(in)  :: dp2(nx, nx, nlev)
+    real (kind=real_kind),   intent(in)  :: bnds(2, nx, nx, nlev, qsize) ! Min/Max for each q
+    logical,                 intent(out) :: res
+       
+    !================
+    ! Local variables
+    !================
+    real (kind=real_kind)   :: mr
+    real (kind=real_kind)   :: lbnd, ubnd
+    logical                 :: flag
+    integer (kind=int_kind) :: ii, jj, kk, ll ! Iterators.
+    real (kind=real_kind), parameter :: tol = 3.5e-14 ! Tolerance for floating point
+    ! comparisons.
+
+    res = .true.
+
+    do ll = 1, qsize
+       do ii = 1, nx
+          do jj = 1, nx
+             flag = .true.
+             do kk = 1, nlev
+                lbnd = bnds(1, ii, jj, kk, ll)
+                ubnd = bnds(2, ii, jj, kk, ll)
+
+                mr = Qdp(ii, jj, kk, ll) / dp2(ii, jj, kk)
+                
+                if ( ((mr - ubnd) > tol) .or. ((lbnd - mr) > tol) ) then
+                   res = .false.
+                   flag = .false.
+                end if
+             end do
+             if (hybrid%masterthread .and. .not. flag) then
+                print *, "~~ Violation found in column: ", ii, jj
+             end if
+          end do
+       end do
+    end do
+
+  end subroutine is_bounded
 
 end module vertremap_base
