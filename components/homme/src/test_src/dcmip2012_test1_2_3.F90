@@ -882,7 +882,7 @@ IMPLICIT NONE
      height = T0/gamma * (1.d0 - (p/p0)**exponent_rev)  ! compute the height at this pressure
      z = height
   else if (zcoords .eq. 1) then
-     z = hyam*ztop + hybm*zs
+     z = ztop - hyam*ztop - hybm*(ztop-zs)
      height = z
      p = p0 * (1.d0 - gamma/T0*z)**exponent
   endif
