@@ -804,14 +804,14 @@ SUBROUTINE test2_steady_state_mountain (lon,lat,p,z,zcoords,hybrid_eta,hyam,hybm
 
 IMPLICIT NONE
 
-	real(8),  intent(in)    :: lon        ! Longitude (radians)
+  real(8),  intent(in)    :: lon        ! Longitude (radians)
   real(8),  intent(in)    :: lat        ! Latitude (radians)
-  real(8),  intent(inout)    :: z          ! Height (m)
+  real(8),  intent(inout) :: z          ! Height (m)
   real(8),  intent(in)    :: hyam       ! A coefficient for hybrid-eta coordinate, at model level midpoint
   real(8),  intent(in)    :: hybm       ! B coefficient for hybrid-eta coordinate, at model level midpoint
-	logical,  intent(in)    :: hybrid_eta ! if true,p from hybrid coeff. if false, p is precomputed
+  logical,  intent(in)    :: hybrid_eta ! if true,p from hybrid coeff. if false, p is precomputed
   real(8),  intent(inout) :: p          ! Pressure  (Pa)
-	integer,  intent(in)    :: zcoords    ! 0 or 1 see below
+  integer,  intent(in)    :: zcoords    ! 0 or 1 see below
   real(8),  intent(out)   :: u          ! Zonal wind (m s^-1)
   real(8),  intent(out)   :: v          ! Meridional wind (m s^-1)
   real(8),  intent(out)   :: w          ! Vertical Velocity (m s^-1)

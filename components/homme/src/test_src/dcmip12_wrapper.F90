@@ -370,12 +370,12 @@ subroutine dcmip2012_test2_0(elem,hybrid,hvcoord,nets,nete)
   end if
   call set_hybrid_coefficients(hvcoord,hybrid,  hvcoord%etai(1), 1.0_rl)! set hybrid A and B from eta levels
   call set_layer_locations(hvcoord, .true., hybrid%masterthread)
-
+ 
   ! set initial conditions
   do ie = nets,nete; 
      do j=1,np; do i=1,np
         do k=1,nlevp
-           call get_coordinates(lat,lon,hyai,hybi, i,j,k,elem(ie),hvcoord)
+           call get_coordinates(lat,lon,hyai,hybi,i,j,k,elem(ie),hvcoord,'i')
            call test2_steady_state_mountain(lon,lat,p,z,zcoords,use_eta,hyai,hybi,u,v,w,T,phis,ps,rho,q(1))
            if (zcoords == 0) then
               he = (T0 - T)/gamma
@@ -385,11 +385,8 @@ subroutine dcmip2012_test2_0(elem,hybrid,hvcoord,nets,nete)
            end if
            call set_state_i(u,v,w,T,ps,phis,p,he,g, i,j,k,elem(ie),1,nt)
         enddo
-        if (hybrid%masterthread) then
-           write(iulog,*) "~~ zi(k): ", zi
-        end if
         do k=1,nlev
-           call get_coordinates(lat,lon,hyam,hybm, i,j,k,elem(ie),hvcoord)
+           call get_coordinates(lat,lon,hyam,hybm, i,j,k,elem(ie),hvcoord,'m')
            call test2_steady_state_mountain(lon,lat,p,z,zcoords,use_eta,hyam,hybm,u,v,w,T,phis,ps,rho,q(1))
            if (zcoords == 0) then
               dp = pressure_thickness(ps,k,hvcoord)
@@ -446,7 +443,7 @@ subroutine dcmip2012_test2_x(elem,hybrid,hvcoord,nets,nete,shear)
   ! set initial conditions
   do ie = nets,nete; 
      do k=1,nlev; do j=1,np; do i=1,np
-        call get_coordinates(lat,lon,hyam,hybm, i,j,k,elem(ie),hvcoord)
+        call get_coordinates(lat,lon,hyam,hybm, i,j,k,elem(ie),hvcoord,'m')
         call test2_schaer_mountain(lon,lat,p,z,zcoords,use_eta,hyam,hybm,shear,u,v,w,T,phis,ps,rho,q(1))
         dp = pressure_thickness(ps,k,hvcoord)
         ! original
@@ -458,7 +455,7 @@ subroutine dcmip2012_test2_x(elem,hybrid,hvcoord,nets,nete,shear)
         
      enddo; enddo; enddo; 
      do k=1,nlevp; do j=1,np; do i=1,np
-        call get_coordinates(lat,lon,hyai,hybi, i,j,k,elem(ie),hvcoord)
+        call get_coordinates(lat,lon,hyai,hybi, i,j,k,elem(ie),hvcoord,'i')
         call test2_schaer_mountain(lon,lat,p,z,zcoords,use_eta,hyai,hybi,shear,u,v,w,T,phis,ps,rho,q(1))
         call set_state_i(u,v,w,T,ps,phis,p,z,g, i,j,k,elem(ie),1,nt)
      enddo; enddo; enddo; 
@@ -516,14 +513,14 @@ subroutine mtest_init(elem,hybrid,hvcoord,nets,nete,testid)
   ! set initial conditions
   do ie = nets,nete; 
      do k=1,nlev; do j=1,np; do i=1,np
-        call get_coordinates(lat,lon,hyam,hybm, i,j,k,elem(ie),hvcoord)
+        call get_coordinates(lat,lon,hyam,hybm, i,j,k,elem(ie),hvcoord,'m')
         call mtest_state(lon,lat,p,z,hyam,hybm,u,v,w,T,phis,ps,rho,testid)
         dp = pressure_thickness(ps,k,hvcoord)
         call set_state(u,v,w,T,ps,phis,p,dp,z,g, i,j,k,elem(ie),1,nt)
         
      enddo; enddo; enddo; 
      do k=1,nlevp; do j=1,np; do i=1,np
-        call get_coordinates(lat,lon,hyai,hybi, i,j,k,elem(ie),hvcoord)
+        call get_coordinates(lat,lon,hyai,hybi, i,j,k,elem(ie),hvcoord,'i')
         call mtest_state(lon,lat,p,z,hyai,hybi,u,v,w,T,phis,ps,rho,testid)
         call set_state_i(u,v,w,T,ps,phis,p,z,g, i,j,k,elem(ie),1,nt)
         
@@ -620,7 +617,7 @@ subroutine dcmip2012_test3(elem,hybrid,hvcoord,nets,nete)
   ! set initial conditions
   do ie = nets,nete
      do k=1,nlev; do j=1,np; do i=1,np
-        call get_coordinates(lat,lon,hyam,hybm, i,j,k,elem(ie),hvcoord)
+        call get_coordinates(lat,lon,hyam,hybm, i,j,k,elem(ie),hvcoord,'m')
         call test3_gravity_wave(lon,lat,p,zm(k),zcoords,use_eta,hyam,hybm,u,v,w,T,T_mean,phis,ps,rho,rho_mean,q(1))
         if (zcoords==0) then
            dp = pressure_thickness(ps,k,hvcoord)
@@ -631,7 +628,7 @@ subroutine dcmip2012_test3(elem,hybrid,hvcoord,nets,nete)
         call set_tracers(q,qsize, dp,i,j,k,lat,lon,elem(ie))
      enddo; enddo; enddo; 
      do k=1,nlevp; do j=1,np; do i=1,np
-        call get_coordinates(lat,lon,hyai,hybi, i,j,k,elem(ie),hvcoord)
+        call get_coordinates(lat,lon,hyai,hybi, i,j,k,elem(ie),hvcoord,'i')
         call test3_gravity_wave(lon,lat,p,zi(k),zcoords,use_eta,hyai,hybi,u,v,w,T,T_mean,phis,ps,rho,rho_mean,q(1))
         call set_state_i(u,v,w,T,ps,phis,p,zi(k),g, i,j,k,elem(ie),1,nt)
      enddo; enddo; enddo; 
@@ -677,7 +674,7 @@ subroutine dcmip2012_test4_init(elem,hybrid,hvcoord,nets,nete)
     do k=1,nlev
       pressure=hvcoord%hyam(k)*hvcoord%ps0 + hvcoord%hybm(k)*ps_test
       do j=1,np; do i=1,np
-        call get_coordinates(lat,lon,hyam,hybm, i,j,k,elem(ie),hvcoord)
+        call get_coordinates(lat,lon,hyam,hybm, i,j,k,elem(ie),hvcoord,'m')
 
         !test4_baroclinic_wave(moist,X,lon,lat,p,z,zcoords,u,v,w,t,phis,ps,rho,q,q1,q2)
         !moist 0 or 1, X is Earth scale factor, zcoord=0, q is vapor, q1, q2
@@ -695,7 +692,7 @@ subroutine dcmip2012_test4_init(elem,hybrid,hvcoord,nets,nete)
     do k=1,nlevp
       pressure=hvcoord%hyai(k)*hvcoord%ps0 + hvcoord%hybi(k)*ps_test
       do j=1,np; do i=1,np
-        call get_coordinates(lat,lon,hyai,hybi, i,j,k,elem(ie),hvcoord)
+        call get_coordinates(lat,lon,hyai,hybi, i,j,k,elem(ie),hvcoord,'i')
 
         !test4_baroclinic_wave(moist,X,lon,lat,p,z,zcoords,u,v,w,t,phis,ps,rho,q,q1,q2)
         !moist 0 or 1, X is Earth scale factor, zcoord=0, q is vapor, q1, q2
@@ -781,22 +778,31 @@ subroutine set_hybrid_coefficients(hv, hybrid, eta_t, c)
 end subroutine
 
 !_____________________________________________________________________
-subroutine get_coordinates(lat,lon,hyam,hybm, i,j,k,elem,hvcoord)
+subroutine get_coordinates(lat,lon,hya,hyb,i,j,k,elem,hvcoord,opt)
 
   ! get lat,lon, vertical coords at node(i,j,k)
 
-  real(rl),         intent(out):: lon,lat,hyam,hybm
+  real(rl),         intent(out):: lon,lat,hya,hyb
   integer,          intent(in) :: i,j,k
   type(element_t),  intent(in) :: elem
   type(hvcoord_t),  intent(in) :: hvcoord
+  character(len=1), intent(in) :: opt ! Get interface values (i) or 
+  ! midpoint values (m)
 
   ! get horizontal coordinates at column i,j
   lon  = elem%spherep(i,j)%lon
   lat  = elem%spherep(i,j)%lat
 
-  ! get hybrid coeffiecients at midpoint of vertical level k
-  hyam = hvcoord%hyam(k)
-  hybm = hvcoord%hybm(k)
+  ! get hybrid coefficients at vertical level k
+  if (opt .eq. 'i') then
+     hya = hvcoord%hyai(k)
+     hyb = hvcoord%hybi(k)
+  else if (opt .eq. 'm') then
+     hya = hvcoord%hyam(k)
+     hyb = hvcoord%hybm(k)
+  else ! IN CASE OF ERROR, ABORT
+     call abortmp('ERROR: Invalid option for get_coordinates in dcmip12_wrapper.F90.')
+  end if
 
 end subroutine
 

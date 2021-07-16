@@ -14,18 +14,20 @@
   restartfreq       = -1                        ! don't write restart files if < 0
   runtype           = 0                         ! 0 = new run
   tstep             = 300                       ! largest timestep in seconds
-  rsplit            = 6
+  rsplit            = 1
+  vert_remap_q_alg  = 10
   integration       = 'explicit'                ! explicit time integration
-  tstep_type        = 5                         ! 1 => default method
+  tstep_type        = 9                         ! 1 => default method
   hv_ref_profiles   = 0
   hv_theta_correction=0
-  pgrad_correction   =0
+  pgrad_correction  = 0
   nu                = 1e15                      ! hyperviscosity
   nu_s              = 1e15
   nu_p              = 1e15
   hypervis_order    = 2                         ! 2 = hyperviscosity
   hypervis_subcycle = 1                         ! 1 = no hyperviz subcycling
   omega             = 0.0                       ! earth angular speed = 0.0
+  hcoord            = 0                         ! 0 - pressure, 1 - height
 /
 &vert_nl
   vform             = "ccm"                     ! vertical coordinate type "ccm"=hybrid pressure/terrain
