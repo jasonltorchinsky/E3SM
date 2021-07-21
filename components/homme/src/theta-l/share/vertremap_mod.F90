@@ -196,7 +196,11 @@ contains
 
      ! reinitialize dp3d after remap
      ! in eulerian rsplit=0 case, also do this just to keep dp3d /ps consistent
-     elem(ie)%state%dp3d(:,:,:,np1)=dp(:,:,:)
+     if (hcoord==0) then
+        do k=1,nlev    
+           elem(ie)%state%dp3d(:,:,:,np1)=dp(:,:,:)
+        enddo
+     endif
      
   enddo
   call t_stopf('vertical_remap')

@@ -1587,10 +1587,14 @@ contains
 
 #ifdef MODEL_THETA_L
 
-  if (dt_remap_factor==0) then
-     adjust_ps=.true.   ! stay on reference levels for Eulerian case
-  else
-     adjust_ps=.true.   ! Lagrangian case can support adjusting dp3d or ps
+  if (hcoord == 1) then
+     adjust_ps = .false. ! Can only adjust dp3d
+  else 
+        if (dt_remap_factor==0) then
+           adjust_ps=.true.   ! stay on reference levels for Eulerian case
+        else
+           adjust_ps=.true.   ! Lagrangian case can support adjusting dp3d or ps
+        endif
   endif
 
 #else

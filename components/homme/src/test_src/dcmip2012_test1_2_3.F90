@@ -862,7 +862,7 @@ IMPLICIT NONE
   r   = acos( sin(phim)*sin(lat) + cos(phim)*cos(lat)*cos(lon - lambdam) )
 
   zs  = 0.d0
-  if (r < Rm) zs=(h0/2.d0)*(1.d0+cos(pi*r/Rm))*cos(pi*r/zetam)**2.d0    ! mountain height
+!  if (r < Rm) zs=(h0/2.d0)*(1.d0+cos(pi*r/Rm))*cos(pi*r/zetam)**2.d0    ! mountain height
 
   phis = g*zs
 

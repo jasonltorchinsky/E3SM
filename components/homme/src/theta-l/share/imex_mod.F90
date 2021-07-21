@@ -166,7 +166,7 @@ contains
 #ifdef HOMMEXX_BFB_TESTING
     deltatol=1.0e-6_real_kind ! In BFB testing we can't converge due to calls of zeroulp
 #else
-    deltatol=1.0e-11_real_kind  ! exit if newton increment < deltatol
+    deltatol=1.0e-10_real_kind  ! exit if newton increment < deltatol
 #endif
 
     !restol=1.0e-13_real_kind    ! exit if residual < restol  
@@ -334,7 +334,7 @@ contains
              do j=1,np
                 do i=1,np
                    if (.not. any(dphi(i,j,1:nlev) >= 0)) cycle
-
+                   
                    ! Step halfway to the distance at which at least one dphi is 0.
                    alpha = 1
                    do k = 1,nlev
@@ -353,7 +353,15 @@ contains
                    alpha = alpha/2
                    alphas(i,j) = alpha
 
-                   write(iulog,*) 'WARNING:IMEX is reducing step length from 1 to',alpha
+                   if (hybrid%masterthread) then
+                      do k = 1, nlev
+                        if (dphi(i,j,k) >= 0) then
+                          write(iulog,*) '~~ Layer intersection at ', k
+                        end if
+                      end do
+                      write(iulog,*) 'WARNING:IMEX is reducing step length from 1 to', alpha, &
+                                     itercount
+                   end if
 
                    do k = 1,nlev-1
                       dphi(i,j,k) = dphi_n0(i,j,k) + &

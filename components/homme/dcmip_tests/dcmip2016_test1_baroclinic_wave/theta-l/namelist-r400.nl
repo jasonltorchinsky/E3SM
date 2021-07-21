@@ -14,8 +14,9 @@
   runtype           = 0                         ! 0 => new run
   tstep             = 900                       ! largest timestep in seconds
   integration       = 'explicit'                ! explicit time integration
-  tstep_type        = 7 
-  rsplit            = 0
+  tstep_type        = 9 
+  rsplit            = 1
+  vert_remap_q_alg  = 10
   qsplit            = 1
   nu                = 3e16                      ! default= 1e15*(ne30/ne8)**3.2 = 6.9e16
   nu_s              = 3e16
@@ -26,8 +27,9 @@
   hypervis_subcycle = 1                         ! 1 = no hyperviz subcycling
   moisture          = 'wet'
   theta_hydrostatic_mode = .false.
-  dcmip16_prec_type = 1                         ! 0=kessler physics
-  dcmip16_pbl_type  = -1                        ! 0=reed-jablonowski pbl, -1 = none
+  dcmip16_prec_type = 1                         ! 0 - kessler physics
+  dcmip16_pbl_type  = -1                        ! 0 - reed-jablonowski pbl, -1 - none
+  hcoord            = 0                         ! 0 - pressure, 1 - height
 /
 &vert_nl
   vform             = "ccm"

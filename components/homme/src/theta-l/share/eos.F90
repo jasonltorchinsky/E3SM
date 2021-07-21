@@ -292,6 +292,7 @@ implicit none
   endif
 #endif
   ! compute pressure on interfaces                                                                                   
+  ! in height coord model (hcoord = 1) we would never call this subroutine, so assume:
   p_i(:,:,1)=hvcoord%hyai(1)*hvcoord%ps0
   do k=1,nlev
      p_i(:,:,k+1)=p_i(:,:,k) + dp(:,:,k)

@@ -322,7 +322,7 @@ contains
           elem(ie)%state%phinh_i(:,:,1:nlev,np1)=elem(ie)%state%phinh_i(:,:,1:nlev,np1)+&
                (elem(ie)%state%phinh_i(:,:,1:nlev,nm1)-elem(ie)%state%phinh_i(:,:,1:nlev,n0))/4
           call limiter_dp3d_k(elem(ie)%state%dp3d(:,:,:,np1),elem(ie)%state%vtheta_dp(:,:,:,np1),&
-               elem(ie)%spheremp,hvcoord%dp0)
+               elem(ie)%spheremp,hvcoord%dp0,elem(ie)%state%phinh_i(:,:,:,np1))
        enddo
 
        !  n0          nm1       np1 
@@ -1845,7 +1845,7 @@ contains
      endif
      if (scale3 /= 0) then
        call limiter_dp3d_k(elem(ie)%state%dp3d(:,:,:,np1),elem(ie)%state%vtheta_dp(:,:,:,np1),&
-            elem(ie)%spheremp,hvcoord%dp0)
+            elem(ie)%spheremp,hvcoord%dp0,elem(ie)%state%phinh_i(:,:,:,np1))
      endif
   end do
   call t_stopf('compute_andor_apply_rhs')
@@ -1853,7 +1853,7 @@ contains
   end subroutine compute_andor_apply_rhs
 
 
-  subroutine limiter_dp3d_k(dp3d,vtheta_dp,spheremp,dp0)
+  subroutine limiter_dp3d_k(dp3d,vtheta_dp,spheremp,dp0,phi_i)
   ! mass conserving column limiter (1D only)
   !
   ! if dp3d < dp3d_thresh*hvcoord%dp0 then apply vertical mixing 
@@ -1867,6 +1867,7 @@ contains
   real (kind=real_kind), intent(inout) :: vtheta_dp(np,np,nlev)
   real (kind=real_kind), intent(in) :: dp0(nlev)
   real (kind=real_kind), intent(in) :: spheremp(np,np)  !  density
+  real (kind=real_kind), intent(in) :: phi_i(np,np,nlevp)
 
   ! local
   real (kind=real_kind) :: Qcol(nlev)
@@ -1883,7 +1884,9 @@ contains
         ! In bfb unit tests, we use (semi-)random inputs, so we expect to hit this.
         ! Still, we don't want to fill up the console output
         write(iulog,*) 'WARNING:CAAR: dp3d too small. dt_remap may be too large'
-        write(iulog,*) 'k,dp3d(k), dp0: ',k,minval(dp3d(:,:,k)),dp0(k)
+        write(iulog,*) 'k, dp3d(k), dp0: ', k, minval(dp3d(:,:,k)), dp0(k)
+        write(iulog,'(A,I5.1,16E16.8,/,E16.8)') 'k, max/min phi_i(k), min phi_i(k) - phi_i(k+1): ', &
+                    k, maxval(phi_i(:,:,k)), minval(phi_i(:,:,k)), minval(phi_i(:,:,k) - phi_i(:,:,k+1))
 #endif
         warn=.true.
      endif

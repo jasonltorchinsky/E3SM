@@ -103,6 +103,8 @@ subroutine dcmip2016_test1(elem,hybrid,hvcoord,nets,nete)
 
   if (qsize<6) call abortmp('ERROR: test requires qsize>=6')
 
+  !use_zcoords = hcoord
+
   ! set initial conditions
   do ie = nets,nete
     do k=1,nlevp; do j=1,np; do i=1,np
@@ -121,7 +123,7 @@ subroutine dcmip2016_test1(elem,hybrid,hvcoord,nets,nete)
         endif
 
         w_i(i,j,k)   = 0.0d0
-        use_zcoords=0
+        use_zcoords  = 0
         ! call this only to compute z_i, will ignore all other output
         call baroclinic_wave_test(is_deep,moist,pertt,dcmip_X,lon,lat,p_i(i,j,k),&
             z_i(i,j,k),use_zcoords,u(i,j,1),v(i,j,1),T(i,j,1),thetav(i,j,1),phis(i,j),ps(i,j),rho(i,j,1),q(i,j,1,1))
@@ -131,13 +133,12 @@ subroutine dcmip2016_test1(elem,hybrid,hvcoord,nets,nete)
         if (hcoord==1) then
            ! use z_i computed above, and then do the rest of the initialization
            ! in height coordinates
-           z(i,j,k)=(z_i(i,j,k+1)+z_i(i,j,k))/2
-           use_zcoords=1
+           z(i,j,k)    = (z_i(i,j,k+1)+z_i(i,j,k))/2
+           use_zcoords = 1
         endif
         
         ! no surface topography
         p(i,j,k)  = p0*hvcoord%etam(k)
-        dp(i,j,k) = (hvcoord%etai(k+1)-hvcoord%etai(k))*p0
 
         lon = elem(ie)%spherep(i,j)%lon
         lat = elem(ie)%spherep(i,j)%lat
@@ -165,7 +166,9 @@ subroutine dcmip2016_test1(elem,hybrid,hvcoord,nets,nete)
     enddo; enddo; enddo
 
     call set_elem_state(u,v,w,w_i,T,ps,phis,p,dp,z,z_i,g,elem(ie),1,nt,ntQ=1)
-    call tests_finalize(elem(ie),hvcoord)
+    if (hcoord == 0) then ! Only enforce discrete hydrostatic condition for pressure coordinate
+      call tests_finalize(elem(ie),hvcoord)
+    end if
 
   enddo
   sample_period = 1800.0 ! sec
