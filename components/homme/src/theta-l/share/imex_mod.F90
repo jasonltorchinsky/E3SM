@@ -220,7 +220,7 @@ contains
             elem(ie)%derived%gradphis,hvcoord)
        phi_n0(:,:,1:nlev) = phi_n0(:,:,1:nlev) -  dt2*gwh_i(:,:,1:nlev)
 
-#if 0
+#if 1
        ! w(np1) as initial guess:
        phi_np1(:,:,1:nlev) =  phi_n0(:,:,1:nlev) +  dt2*g*w_np1(:,:,1:nlev)
 #endif
@@ -233,7 +233,7 @@ contains
        w_np1(:,:,1:nlev)=gwh_i(:,:,1:nlev)/g  
        phi_np1(:,:,1:nlev) =  phi_n0(:,:,1:nlev) +  dt2*g*w_np1(:,:,1:nlev)
 #endif
-#if 1
+#if 0
        ! use hydrostatic for initial guess
        call phi_from_eos(hvcoord,elem(ie)%state%phis,elem(ie)%state%vtheta_dp(:,:,:,np1),&
             elem(ie)%state%dp3d(:,:,:,np1),phi_np1)
@@ -356,7 +356,7 @@ contains
                    if (hybrid%masterthread) then
                       do k = 1, nlev
                         if (dphi(i,j,k) >= 0) then
-                          write(iulog,*) '~~ Layer intersection at ', k
+                          write(iulog,*) '~~ Layer intersection at ', k, ' dphi(i,j,k) = ', dphi(i,j,k)
                         end if
                       end do
                       write(iulog,*) 'WARNING:IMEX is reducing step length from 1 to', alpha, &

@@ -1878,6 +1878,10 @@ contains
 
   ! first check if limter is needed, and print warning
   warn=.false. 
+  ! Need a proper check for height coord, if z levels are getting too close
+  if (hcoord == 1) then
+     dp3d_thresh = 0.01
+  endif
   do k=1,nlev
      if ( minval(dp3d(:,:,k)) < dp3d_thresh*dp0(k)) then
 #ifndef HOMMEXX_BFB_TESTING
@@ -1891,6 +1895,7 @@ contains
         warn=.true.
      endif
   enddo
+  
 
   if (warn) then
 #ifndef HOMMEXX_BFB_TESTING

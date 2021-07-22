@@ -148,7 +148,13 @@ contains
         !ttmp(:,:,:,5)=ttmp(:,:,:,5) !*dp_star
     
         call t_startf('vertical_remap1_1')
-        call remap1(ttmp,np,5,dp_star,dp,vert_remap_q_alg)
+        if (hcoord == 0) then
+           call remap1(ttmp,np,5,dp_star,dp,vert_remap_q_alg)
+        else if (hcoord == 1) then
+           call remap1(ttmp,np,5,dz_star,dz,vert_remap_q_alg)
+        else
+          call abortmp('Invalid hcoord option, must be 0 (pressure) or 1 (height) [vertremap_mod.F90]') 
+        end if
         call t_stopf('vertical_remap1_1')
 
         elem(ie)%state%v(:,:,1,:,np1)=ttmp(:,:,:,1)/dp
@@ -163,16 +169,19 @@ contains
                 elem(ie)%state%w_i(:,:,k+1,np1)-ttmp(:,:,k,5)  !/dp(:,:,k)
         enddo
 
-        ! depends on theta, so do this after updating theta:
-        call phi_from_eos(hvcoord,elem(ie)%state%phis,elem(ie)%state%vtheta_dp(:,:,:,np1),dp,phi_ref)
-        elem(ie)%state%phinh_i(:,:,:,np1)=&
-             elem(ie)%state%phinh_i(:,:,:,np1)+phi_ref(:,:,:)
-
-        if (hcoord==1) then
-           ! we are remapping to PHI ref levels, so ignore PHI remap done above:
+        
+        if (hcoord == 0) then
+           ! depends on theta, so do this after updating theta:
+           call phi_from_eos(hvcoord,elem(ie)%state%phis,elem(ie)%state%vtheta_dp(:,:,:,np1),dp,phi_ref)
+           elem(ie)%state%phinh_i(:,:,:,np1)=&
+                elem(ie)%state%phinh_i(:,:,:,np1)+phi_ref(:,:,:)
+        else if (hcoord==1) then
+           ! we are remapping to PHI ref levels
            elem(ie)%state%phinh_i(:,:,:,np1)=elem(ie)%derived%phi_ref(:,:,:)
            ! should not be needed, but to minimize truncation error from scan above
            elem(ie)%state%w_i(:,:,1,np1) = 0 
+        else
+          call abortmp('Invalid hcoord option, must be 0 (pressure) or 1 (height) [vertremap_mod.F90]') 
         endif
 
         ! since u changed, update w b.c.:
