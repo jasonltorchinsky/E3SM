@@ -5,7 +5,7 @@
 module vertremap_mod
   use vertremap_base, only: remap1, remap1_nofilter
 
-  use kinds, only                  : real_kind,int_kind
+  use kinds, only                  : real_kind, int_kind, iulog
   use dimensions_mod, only         : np,nlev,qsize,nlevp,npsq
   use hybvcoord_mod, only          : hvcoord_t
   use element_mod, only            : element_t
@@ -130,9 +130,17 @@ contains
 
      if (rsplit>0) then
         ! remove hydrostatic phi befor remap
-        call phi_from_eos(hvcoord,elem(ie)%state%phis,elem(ie)%state%vtheta_dp(:,:,:,np1),dp_star,phi_ref)
-        elem(ie)%state%phinh_i(:,:,:,np1)=&
-             elem(ie)%state%phinh_i(:,:,:,np1) -phi_ref(:,:,:)
+        if (hcoord == 0) then
+           call phi_from_eos(hvcoord,elem(ie)%state%phis,elem(ie)%state%vtheta_dp(:,:,:,np1),dp_star,phi_ref)
+           elem(ie)%state%phinh_i(:,:,:,np1)=&
+                elem(ie)%state%phinh_i(:,:,:,np1) -phi_ref(:,:,:)
+        else if (hcoord == 1) then ! Need to have something included here. For now, don't clog log file with warnings
+           if (hybrid%masterthread) then
+              !write(iulog, *) 'WARNING: Need to remove hydrostatic phi from before remap in height coordinate.'
+           end if
+        else
+           call abortmp('ERROR: Invalid hcoord option for removing hydrostatic phi before remapping, must be 0 (pressure) or 1 (height) [vertremap_mod.F90]') 
+        end if
  
         !  REMAP u,v,T from levels in dp3d() to REF levels
         ttmp(:,:,:,1)=elem(ie)%state%v(:,:,1,:,np1)*dp_star
@@ -153,7 +161,7 @@ contains
         else if (hcoord == 1) then
            call remap1(ttmp,np,5,dz_star,dz,vert_remap_q_alg)
         else
-          call abortmp('Invalid hcoord option, must be 0 (pressure) or 1 (height) [vertremap_mod.F90]') 
+          call abortmp('ERROR: Invalid hcoord option for remapping. Must be 0 (pressure) or 1 (height) [vertremap_mod.F90]') 
         end if
         call t_stopf('vertical_remap1_1')
 
@@ -205,11 +213,9 @@ contains
 
      ! reinitialize dp3d after remap
      ! in eulerian rsplit=0 case, also do this just to keep dp3d /ps consistent
-     if (hcoord==0) then
-        do k=1,nlev    
-           elem(ie)%state%dp3d(:,:,:,np1)=dp(:,:,:)
-        enddo
-     endif
+     do k=1,nlev    
+        elem(ie)%state%dp3d(:,:,:,np1)=dp(:,:,:)
+     enddo
      
   enddo
   call t_stopf('vertical_remap')
