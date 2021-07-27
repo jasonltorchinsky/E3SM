@@ -103,7 +103,6 @@ subroutine dcmip2016_test1(elem,hybrid,hvcoord,nets,nete)
 
   if (qsize<6) call abortmp('ERROR: test requires qsize>=6')
 
-  !use_zcoords = hcoord
 
   ! set initial conditions
   do ie = nets,nete

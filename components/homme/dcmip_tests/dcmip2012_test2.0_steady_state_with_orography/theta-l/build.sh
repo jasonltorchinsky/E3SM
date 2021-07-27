@@ -2,7 +2,7 @@
 
 echo '-- Setting file paths...'
 
-e3sm=/global/homes/j/jlturner/practicum-2021/E3SM-heightcoord
+e3sm=/global/homes/j/jlturner/practicum-2021/E3SM-height+remap
 
 export e3sm
 

@@ -93,8 +93,12 @@ contains
               dz_star(:,:,k)=elem(ie)%state%phinh_i(:,:,k,np1)-elem(ie)%state%phinh_i(:,:,k+1,np1)
               dz(:,:,k)=elem(ie)%derived%phi_ref(:,:,k)-elem(ie)%derived%phi_ref(:,:,k+1)
            enddo
-           dp = dp_star  
-           call remap1(dp,np,1,dz_star,dz,vert_remap_q_alg)  ! reamp density, conserving rho*dz
+           dp = dp_star
+           if (vert_remap_q_alg .eq. 1011) then
+              call remap1(dp,np,1,dz_star,dz,10)  ! reamp density, conserving rho*dz
+           else
+              call remap1(dp,np,1,dz_star,dz,vert_remap_q_alg)  ! reamp density, conserving rho*dz
+           end if
         endif
      else
         do k=1,nlev
@@ -157,9 +161,21 @@ contains
     
         call t_startf('vertical_remap1_1')
         if (hcoord == 0) then
-           call remap1(ttmp,np,5,dp_star,dp,vert_remap_q_alg)
+           if (vert_remap_q_alg .eq. 1011) then ! Use q_alg = 11 for thermodynamic variable and 10 for rest
+              call remap1(ttmp(:,:,:,1:2),np,2,dp_star,dp,10)
+              call remap1(ttmp(:,:,:,3),np,1,dp_star,dp,11)
+              call remap1(ttmp(:,:,:,4:5),np,2,dp_star,dp,10)
+           else
+              call remap1(ttmp,np,5,dp_star,dp,vert_remap_q_alg)
+           end if
         else if (hcoord == 1) then
-           call remap1(ttmp,np,5,dz_star,dz,vert_remap_q_alg)
+           if (vert_remap_q_alg .eq. 1011) then ! Use q_alg = 11 for thermodynamic variable and 10 for rest
+              call remap1(ttmp(:,:,:,1:2),np,2,dz_star,dz,10)
+              call remap1(ttmp(:,:,:,3),np,1,dz_star,dz,11)
+              call remap1(ttmp(:,:,:,4:5),np,2,dz_star,dz,10)
+           else
+              call remap1(ttmp,np,5,dz_star,dz,vert_remap_q_alg)
+           end if
         else
           call abortmp('ERROR: Invalid hcoord option for remapping. Must be 0 (pressure) or 1 (height) [vertremap_mod.F90]') 
         end if
@@ -200,6 +216,11 @@ contains
 
      ! remap the gll tracers from lagrangian levels (dp_star)  to REF levels dp
      if (qsize>0 .and. np1_qdp > 0) then
+
+       if (vert_remap_q_alg .eq. 1011) then ! q_alg = 1011 means we use 11 for thermo and 10 for 
+          ! everything else, so we reset it to 10 here
+          vert_remap_q_alg = 10
+       end if
 
        call t_startf('vertical_remap1_3')
        call remap1(elem(ie)%state%Qdp(:,:,:,:,np1_qdp),np,qsize,dp_star,dp,vert_remap_q_alg)

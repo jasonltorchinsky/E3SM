@@ -8,15 +8,17 @@
   test_case         = "dcmip2012_test2_1"       ! test identifier
   theta_hydrostatic_mode = .false.
   rsplit            = 1
+  vert_remap_q_alg  = 11
   ne                = 20                        ! number of elements per cube face
   qsize             = 0                         ! num tracer fields
-  nmax              = 18000                     ! 7200s / 0.4s per step = 18000 steps
+  ndays             = 0
+  nmax              = 9000                      ! 7200s / 0.4s per step = 18000 steps
   statefreq         = 360                       ! number of steps between screen dumps
   restartfreq       = -1                        ! don't write restart files if < 0
   runtype           = 0                         ! 0 => new run
-  tstep             = 0.4                       ! largest timestep in seconds
+  tstep             = 0.8                       ! largest timestep in seconds
   integration       = 'explicit'                ! explicit time integration
-  tstep_type        = 5                         ! 1 => default method
+  tstep_type        = 9                         ! 1 => default method
   nu                = 3.2e7                     ! reduced planet hyperviscosity hv/500^3
   nu_s              = 3.2e7
   nu_p              = 3.2e7
@@ -28,6 +30,7 @@
   dcmip2_x_h0       = 250.0                     ! mountain height       (m)
   dcmip2_x_d        = 5000.0                    ! mountain half-width   (m)
   dcmip2_x_xi       = 4000.0                    ! mountain wavelength   (m)
+  hcoord            = 0
 /
 &vert_nl
   vform             = "ccm"                     ! vertical coordinate type "ccm"=hybrid pressure/terrain
@@ -37,7 +40,7 @@
 &analysis_nl
   output_dir        = "./movies/"               ! destination dir for netcdf file
   output_timeunits  = 3,                        ! 0=timesteps, 1=days, 2=hours, 3=seconds
-  output_frequency  = 720,                      ! 720 seconds (10+1 outputs)
+  output_frequency  = 360,                      ! 720 seconds (10+1 outputs)
   output_varnames1  ='T','ps','u','v','omega','geo'   ! variables to write to file
   interp_type       = 0                         ! 0=native grid, 1=bilinear
   output_type       ='netcdf'                   ! netcdf or pnetcdf

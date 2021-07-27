@@ -14,8 +14,9 @@
   runtype           = 0                         ! 0 => new run
   tstep             = 900.0                     ! largest timestep in seconds
   integration       = 'explicit'                ! explicit time integration
-  tstep_type        = 7
-  rsplit            = 0
+  tstep_type        = 9
+  rsplit            = 1
+  vert_remap_q_alg  = 10
   qsplit            = 1
   nu                = 4e16                      ! default= 1e15*(ne30/ne8)**3.2 = 6.9e16
   nu_s              = 4e16
@@ -27,6 +28,7 @@
   moisture          = 'wet'
   dcmip16_prec_type = 1                         ! 0=kessler,     1= reed-jablonowski
   dcmip16_pbl_type  = 0                         ! 0=basic pbl,   1= bryan pbl
+  hcoord            = 0                         ! 0 - pressure, 1 - height
 /
 &vert_nl
   vform         = "ccm"

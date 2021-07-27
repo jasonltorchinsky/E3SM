@@ -28,7 +28,7 @@ module vertremap_base
   !
   !**************************************************************************************
 
-  use kinds, only                  : real_kind,int_kind
+  use kinds, only                  : real_kind,int_kind,iulog
   use dimensions_mod, only         : np,nlev,qsize,nlevp,npsq
   use hybvcoord_mod, only          : hvcoord_t
   use perf_mod, only               : t_startf, t_stopf  ! _EXTERNAL
@@ -102,8 +102,10 @@ subroutine remap1(Qdp,nx,qsize,dp1,dp2,remap_alg)
 
   q = remap_alg
   if ( (q.ne.-1) .and. (q.ne.0) .and. (q.ne.1) &
-       .and. (q.ne.10) .and. (q.ne.11) )&
+       .and. (q.ne.10) .and. (q.ne.11) ) then
+     write(iulog,*) 'remap algorithm = ', q
      call abortmp('Bad vert_remap_q_alg value. Use -1, 0, 1, 10, or 11.')
+  end if
 
   if (remap_alg == -1) then
      call remap1_nofilter(qdp,nx,qsize,dp1,dp2)

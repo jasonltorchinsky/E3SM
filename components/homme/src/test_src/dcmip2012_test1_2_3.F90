@@ -878,11 +878,11 @@ IMPLICIT NONE
 
   ! Height and pressure are aligned (p = p0 * (1.d0 - gamma/T0*z)**exponent)
   if (zcoords .eq. 0) then
-     p = hyam*p0 + hybm*ps              ! compute the pressure based on the surface pressure and hybrid coefficients
+     if (hybrid_eta) p = hyam*p0 + hybm*ps              ! compute the pressure based on the surface pressure and hybrid coefficients
      height = T0/gamma * (1.d0 - (p/p0)**exponent_rev)  ! compute the height at this pressure
      z = height
   else if (zcoords .eq. 1) then
-     z = ztop - hyam*ztop - hybm*(ztop-zs)
+     if (hybrid_eta) z = ztop - hyam*ztop - hybm*(ztop-zs)
      height = z
      p = p0 * (1.d0 - gamma/T0*z)**exponent
   endif
@@ -930,16 +930,16 @@ IMPLICIT NONE
 !     input/output params parameters at given location
 !-----------------------------------------------------------------------
 
-	real(8), intent(in)   :: lon          ! Longitude (radians)
+  real(8), intent(in)   :: lon          ! Longitude (radians)
   real(8), intent(in)   :: lat          ! Latitude (radians)
   real(8), intent(inout):: z            ! Height (m)
   real(8), intent(in)   :: hyam         ! A coefficient for hybrid-eta coordinate, at model level midpoint
   real(8), intent(in)   :: hybm         ! B coefficient for hybrid-eta coordinate, at model level midpoint
-	logical, intent(in)   :: hybrid_eta   ! flag to indicate whether the hybrid sigma-p (eta) coordinate is used
+  logical, intent(in)   :: hybrid_eta   ! flag to indicate whether the hybrid sigma-p (eta) coordinate is used
   real(8), intent(inout):: p            ! Pressure  (Pa)
-	integer, intent(in)   :: zcoords      ! 0 or 1 see below
+  integer, intent(in)   :: zcoords      ! 0 or 1 see below
   integer, intent(in)   :: shear        ! 0 or 1 see below
-	real(8), intent(out)  :: u            ! Zonal wind (m s^-1)
+  real(8), intent(out)  :: u            ! Zonal wind (m s^-1)
   real(8), intent(out)  :: v            ! Meridional wind (m s^-1)
   real(8), intent(out)  :: w            ! Vertical Velocity (m s^-1)
   real(8), intent(out)  :: T            ! Temperature (K)
@@ -948,26 +948,26 @@ IMPLICIT NONE
   real(8), intent(out)  :: rho          ! density (kg m^-3)
   real(8), intent(out)  :: q            ! Specific Humidity (kg/kg)
 
-	! if zcoords  = 1, then we use z and output p
-	! if zcoords  = 0, then we either compute or use p
-	! if shear    = 1, then we use shear flow
-	! if shear    = 0, then we use constant u
+ ! if zcoords  = 1, then we use z and output p
+ ! if zcoords  = 0, then we either compute or use p
+ ! if shear    = 1, then we use shear flow
+ ! if shear    = 0, then we use constant u
 
 !-----------------------------------------------------------------------
 !     test case parameters
 !----------------------------------------------------------------------- 
-	real(8), parameter ::   &
+  real(8), parameter ::   &
     X       = 500.d0,     &   ! Reduced Earth reduction factor
     Om      = 0.d0,       &   ! Rotation Rate of Earth
     as      = a/X,        &   ! New Radius of small Earth
     Teq     = 300.d0,     &   ! Temperature at Equator
-    Peq     = 100000.d0,	&   ! Reference PS at Equator
-    ztop    = 30000.d0,		&   ! Model Top
-    lambdac = pi/4.d0, 		&   ! Lon of Schar Mountain Center
-    phic    = 0.d0,       & 	! Lat of Schar Mountain Center
-    cs      = 0.00025d0 		 	! Wind Shear (shear=1)
+    Peq     = 100000.d0,  &   ! Reference PS at Equator
+    ztop    = 30000.d0,   &   ! Model Top
+    lambdac = pi/4.d0,    &   ! Lon of Schar Mountain Center
+    phic    = 0.d0,       &   ! Lat of Schar Mountain Center
+    cs      = 0.00025d0       ! Wind Shear (shear=1)
                             
-  real(8) :: height						! Model level heights
+  real(8) :: height           ! Model level heights
   real(8) :: sin_tmp, cos_tmp ! Calculation of great circle distance
   real(8) :: r                ! Great circle distance
   real(8) :: zs               ! Surface height
@@ -987,87 +987,80 @@ IMPLICIT NONE
   !    PHIS (surface geopotential)
   !-----------------------------------------------------------------------
 
-	sin_tmp = sin(lat) * sin(phic)
-	cos_tmp = cos(lat) * cos(phic)
-	
-	! great circle distance with 'a/X'  
+  sin_tmp = sin(lat) * sin(phic)
+  cos_tmp = cos(lat) * cos(phic)
 
-	r    = as * ACOS (sin_tmp + cos_tmp*cos(lon-lambdac))
-	zs   = h0 * exp(-(r**2)/(d**2))*(cos(pi*r/xi)**2)
+  ! great circle distance with 'a/X'  
+
+  r    = as * ACOS (sin_tmp + cos_tmp*cos(lon-lambdac))
+  zs   = h0 * exp(-(r**2)/(d**2))*(cos(pi*r/xi)**2)
   !zs   = h0 * exp(-(r**2)/(d**2))
 
-	phis = g*zs
+  phis = g*zs
 
   !-----------------------------------------------------------------------
   !    SHEAR FLOW OR CONSTANT FLOW
   !-----------------------------------------------------------------------
 
-	if (shear .eq. 1) then
-
-		c = cs
-
-	else
-
-		c = 0.d0
-
-	endif
+  if (shear .eq. 1) then
+     c = cs
+  else
+     c = 0.d0
+  endif
 
   !-----------------------------------------------------------------------
   !    TEMPERATURE 
   !-----------------------------------------------------------------------
 
-	T = Teq *(1.d0 - (c*ueq*ueq/(g))*(sin(lat)**2) )
+  T = Teq *(1.d0 - (c*ueq*ueq/(g))*(sin(lat)**2) )
 
   !-----------------------------------------------------------------------
   !    PS (surface pressure)
   !-----------------------------------------------------------------------
 
-	ps = peq*exp( -(ueq*ueq/(2.d0*Rd*Teq))*(sin(lat)**2) - phis/(Rd*t)    )
+  ps = peq*exp( -(ueq*ueq/(2.d0*Rd*Teq))*(sin(lat)**2) - phis/(Rd*t)    )
 
   !-----------------------------------------------------------------------
   !    HEIGHT AND PRESSURE 
   !-----------------------------------------------------------------------
-
-	if (zcoords .eq. 1) then
-
-		height = z
-		p = peq*exp( -(ueq*ueq/(2.d0*Rd*Teq))*(sin(lat)**2) - g*height/(Rd*T)    )
-
-	else
-
-    ! compute the pressure based on the surface pressure and hybrid coefficients
-    if (hybrid_eta) p = hyam*p0 + hybm*ps
-		height = (Rd*T/(g))*log(peq/p) - (T*ueq*ueq/(2.d0*Teq*g))*(sin(lat)**2)
-    z      = height
-	endif
+  if (zcoords .eq. 0) then
+     ! compute the pressure based on the surface pressure and hybrid coefficients
+     if (hybrid_eta) p = hyam*p0 + hybm*ps
+     height = (Rd*T/(g))*log(peq/p) - (T*ueq*ueq/(2.d0*Teq*g))*(sin(lat)**2)
+     z      = height
+  else if (zcoords .eq. 1) then
+     if (hybrid_eta) z = ztop - hyam*ztop - hybm*(ztop-zs)
+     height = z
+     p = peq*exp( -(ueq*ueq/(2.d0*Rd*Teq))*(sin(lat)**2) - g*height/(Rd*T)    )
+  endif
 
   !-----------------------------------------------------------------------
   !    THE VELOCITIES
   !-----------------------------------------------------------------------
 
-	! Zonal Velocity
+  ! Zonal Velocity
 
-	u = ueq * cos(lat) * sqrt( (2.d0*Teq/T)*c*height + T/(Teq) )
+  u = ueq * cos(lat) * sqrt( (2.d0*Teq/T)*c*height + T/(Teq) )
 
-	! Meridional Velocity
+  ! Meridional Velocity
 
-	v = 0.d0
+  v = 0.d0
 
-	! Vertical Velocity = Vertical Pressure Velocity = 0
+  ! Vertical Velocity = Vertical Pressure Velocity = 0
 
-	w = 0.d0
+  w = 0.d0
 
   !-----------------------------------------------------------------------
   !    RHO (density)
   !-----------------------------------------------------------------------
 
-	rho = p/(Rd*T)
+  rho = p/(Rd*T)
 
   !-----------------------------------------------------------------------
   !     initialize Q, set to zero 
   !-----------------------------------------------------------------------
 
-	q = 0.d0
+  q = 0.d0
 
 END SUBROUTINE test2_schaer_mountain
 
