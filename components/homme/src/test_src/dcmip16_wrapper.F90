@@ -279,7 +279,7 @@ subroutine dcmip2016_test2(elem,hybrid,hvcoord,nets,nete)
      enddo; enddo; enddo;
 
     call set_elem_state(u,v,w,w_i,T,ps,phis,p,dp,z,z_i,g,elem(ie),1,nt,ntQ=1)
-    call tests_finalize(elem(ie),hvcoord)
+    if (hcoord == 0) call tests_finalize(elem(ie),hvcoord) ! Only call this for pressure coordinate
   enddo
 
   sample_period = 1800.0 ! sec
