@@ -14,7 +14,7 @@ begin
 ; User options
 ;=======================================================================================
 
-filename="./movies/dcmip2016_test11.nc"
+filename="./movies/dcmip2016_test21.nc"
 f = addfile(filename,"r")
 
 
@@ -45,7 +45,7 @@ do ii = 0, ndays-1
 end do
 
 ; Set latitudes of interest
-lats = fspan(55, 65, 5)
+lats = fspan(15, 30, 5)
 nlats = dimsizes(lats)
 latIdxs = new(nlats, "integer")
 do ii = 0, nlats-1
@@ -103,14 +103,14 @@ end do
 
 ; Set the longitude to center the plot on, and adjust the state variable arrays
 print("Centering state variables on longitude of interest...")
-;cenlon = 0. 
-;
-;u    = lonPivot(u, cenlon)
-;v    = lonPivot(v, cenlon)
-;w    = lonPivot(w, cenlon)
-;T    = lonPivot(T, cenlon)
-;pnh  = lonPivot(pnh, cenlon)
-;wvmr = lonPivot(wvmr, cenlon)
+cenlon = 0. 
+
+u    = lonPivot(u, cenlon)
+v    = lonPivot(v, cenlon)
+w    = lonPivot(w, cenlon)
+T    = lonPivot(T, cenlon)
+pnh  = lonPivot(pnh, cenlon)
+wvmr = lonPivot(wvmr, cenlon)
 
 ; Set maximum altitude
 maxalt = 10000.

@@ -95,9 +95,9 @@ contains
            enddo
            dp = dp_star
            if (vert_remap_q_alg .eq. 1011) then
-              call remap1(dp,np,1,dz_star,dz,10)  ! reamp density, conserving rho*dz
+              call remap1(dp,np,1,dz_star,dz,10)  ! remap density, conserving rho*dz
            else
-              call remap1(dp,np,1,dz_star,dz,vert_remap_q_alg)  ! reamp density, conserving rho*dz
+              call remap1(dp,np,1,dz_star,dz,vert_remap_q_alg)  ! remap density, conserving rho*dz
            end if
         endif
      else
@@ -219,7 +219,7 @@ contains
 
        if (vert_remap_q_alg .eq. 1011) then ! q_alg = 1011 means we use 11 for thermo and 10 for 
           ! everything else, so we reset it to 10 here
-          vert_remap_q_alg = 10
+          vert_remap_q_alg = 11
        end if
 
        call t_startf('vertical_remap1_3')
