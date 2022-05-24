@@ -304,8 +304,11 @@ SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, theta, qv, qc, qr, rho, &
       qsv(k) = qv(k) / (one + qv(k))
       rhom(k) = rho(k) / (one - qsv(k))
       thetav = theta(k) * (one + zvir * qv(k))
-      p(k) = p0 * (rhom(k) * rair * thetav / p0)**(cpair/(cpair-rair))
-      t(k) = p(k) / (rhom(k) * rair * (one + zvir * qv(k)))
+      !p(k) = p0 * (rhom(k) * rair * thetav / p0)**(cpair/(cpair-rair))
+      !t(k) = p(k) / (rhom(k) * rair * (one + zvir * qv(k)))
+      ! Changed temperature calculation to avoid pressure because
+      ! Kessler is isobaric.
+      t(k) = theta(k) * (p(k) / p0)**(rair / cpair)
     enddo
 
   else
