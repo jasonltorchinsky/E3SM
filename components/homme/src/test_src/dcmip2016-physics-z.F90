@@ -74,17 +74,17 @@ SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, theta, qv, qc, qr, rho, &
             qc      ,  & ! Cloud water mixing ratio (kg/kg)
             qr           ! Rain water mixing ratio (kg/kg)
 
-  REAL(8), DIMENSION(nz), INTENT(IN) :: &
+  REAL(8), DIMENSION(nz), INTENT(INOUT) :: &
             rho          ! Dry air density on model levels (kg/m^3)
 
   REAL(8), INTENT(IN) :: & 
             dt           ! Time step (s)
 
   REAL(8), DIMENSION(nz), INTENT(IN) :: &
-            z             ! Heights of model levels (m)
+            z            ! Heights of model levels (m)
 
   REAL(8), DIMENSION(nz+1), INTENT(IN) :: &
-           zi             ! Heights of model interfaces (m)
+            zi           ! Heights of model interfaces (m)
 
   REAL(8), INTENT(IN) :: &
             lat          ! Latitude of column (radians)
@@ -304,11 +304,38 @@ SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, theta, qv, qc, qr, rho, &
       qsv(k) = qv(k) / (one + qv(k))
       rhom(k) = rho(k) / (one - qsv(k))
       thetav = theta(k) * (one + zvir * qv(k))
+      p(k) = p0 * (rhom(k) * rair * thetav / p0)**(cpair/(cpair-rair))
+      t(k) = p(k) / (rhom(k) * rair * (one + zvir * qv(k)))
+    enddo
+  
+  !-------------------------------------------------
+  ! Large-scale precipitation, Torchinsky
+  ! Summer 2022 Work
+  !-------------------------------------------------
+  elseif (prec_type .eq. 2) then
+    CALL KESSLER(   &
+      theta,        &
+      qv,           &
+      qc,           &
+      qr,           &
+      rho,          &
+      exner,        &
+      dt,           &
+      z,            &
+      nz,           &
+      precl)
+
+    ! Convert qv to qsv and theta to pressure and temperature
+    do k = 1,nz
+      !qsv(k) = qv(k) / (one + qv(k))
+      !rhom(k) = rho(k) / (one - qsv(k))
+      !thetav = theta(k) * (one + zvir * qv(k))
       !p(k) = p0 * (rhom(k) * rair * thetav / p0)**(cpair/(cpair-rair))
       !t(k) = p(k) / (rhom(k) * rair * (one + zvir * qv(k)))
-      ! Changed temperature calculation to avoid pressure because
-      ! Kessler is isobaric.
+      
+      qsv(k) = qv(k) / (one + qv(k))
       t(k) = theta(k) * (p(k) / p0)**(rair / cpair)
+      rhom(k) = p(k) / (rair * t(k)  * (one + zvir * qv(k)))
     enddo
 
   else
@@ -454,13 +481,23 @@ SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, theta, qv, qc, qr, rho, &
     qsv(k) = CEE(k) * qsv(k+1) + CFq(k)
   enddo
 
-  ! Convert theta to pressure
-  do k = 1,nz
-    qv(k) = qsv(k) / (one - qsv(k))
-    rhom(k) = rho(k) / (one - qsv(k))
-    thetav = theta(k) * (one + zvir * qv(k))
-    p(k) = p0 * (rhom(k) * rair * thetav / p0)**(cpair/(cpair-rair))
-  enddo
+  if (prec_type .ne. 2) then
+    ! Convert theta to pressure
+    do k = 1,nz
+      qv(k) = qsv(k) / (one - qsv(k))
+      rhom(k) = rho(k) / (one - qsv(k))
+      thetav = theta(k) * (one + zvir * qv(k))
+      p(k) = p0 * (rhom(k) * rair * thetav / p0)**(cpair/(cpair-rair))
+    enddo
+  elseif (prec_type .eq. 2) then
+    ! Convert theta to density
+    do k = 1, nz
+      qv(k) = qsv(k) / (one - qsv(k))
+      thetav = theta(k) * (one + zvir * qv(k))
+      rhom(k) = (p0 / (rair * thetav)) * (p(k) / p0)**((cpair - rair) / cpair)
+      rho(k) = rhom(k) * (one - qsv(k))
+    enddo
+  endif
 
   return
 
