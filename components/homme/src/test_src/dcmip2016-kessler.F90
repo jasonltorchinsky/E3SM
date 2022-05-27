@@ -193,7 +193,7 @@ END SUBROUTINE KESSLER
 !=======================================================================
 
 !=======================================================================
-! Kessler microphysics at cinstant volume
+! Kessler microphysics at constant volume
 !=======================================================================
 
 SUBROUTINE KESSLER_Z(theta, qv, qc, qr, rho, pk, dt, z, nz, precl)
@@ -235,20 +235,27 @@ use physical_constants,   only:  kappa
             rhalf,       & ! Density ratio coeff in KW ep. 2.15
             velqr,       & ! Rain terminal velocity (m/s)
             sed,         & ! Sedimentation term of M_qr (d/dz[rhobar V qr])
-            pc             ! 3.8 / p coefficient, e.g., KW eq. 2.11
+            pc,          & ! Pressure (mb)
+            T              ! Temperature (C)
 
-  REAL(8), PARAMETER ::    &
-            f2x = 17.27d0, & ! Coefficient in Tenten's formula KE eq. 2.11
-            f5  = 237.3d0 * f2x * 2500000.d0 / 1003.d0,         &
-            xk  = .2875d0,          &
-            psl = 1000.0d0,         &
-            rhoqr = 1000.0d0
+  REAL(8), PARAMETER ::      &
+            cp  = 1003.0d0,  & ! Specific heat of dry air at constant pressure (J/(kg K))
+            cv  = 716.0d0,   & ! Specific heat of dry air at constant volume (J/(kg K))
+            lv  = 2.5D6,     & ! Latent heat of vaporization (J / kg)
+            lf  = 3.34D5,    & ! Latent heat of freezing/meting (J / kg)
+            xk  = .2875d0,   & ! Gas constant (R / c_p)
+            psl = 1000.0d0,  & ! Pressure at sea-level (mb)
+            rhoqr = 1000.0d0, &  ! Density of liquid water (kg/m^3)
+            k1  = 0.001d0,   & ! k_1 in KW eq. 2.13a (1/s)
+            k2  = 2.2d0,     & ! k_2 in KW eq. 2.13b (1/s)
+            a   = 0.001d0    ! a in KW eq. 2.13a
 
   REAL(8) ::             &
-            ern,         &
-            qrprod,      &
+            evap,        & ! Amount of rainwater evaporated
+            qrprod,      & ! Rain production rate (Ar + Cr)
             prod,        &
             qvs,         &
+            C,           & !Ventilation factor
             dt_max,      &
             dt0
 
@@ -257,13 +264,15 @@ use physical_constants,   only:  kappa
   !------------------------------------------------
   !   Begin calculation
   !------------------------------------------------
-  do k = 1,nz
+  
+  ! Calculate pressure, terminal velocity
+  do k = 1, nz
     r(k)     = 0.001d0 * rho(k)
     rhalf(k) = sqrt(rho(1) / rho(k))
-    pc(k)    = 3.8d0 / (pk(k)**(1./xk)*psl)
+    pc(k)    = pk(k)**(1./xk)*psl
 
-    ! Liquid water terminal velocity (m/s) following KW eq. 2.15
-    velqr(k)  = 36.34d0*(qr(k)*r(k))**0.1364*rhalf(k)
+    ! Rain terminal velocity via KW eq. 2.15 (m/s)
+    velqr(k)  = 36.34d0*(qr(k) * r(k))**0.1364 * rhalf(k)
   end do
 
   ! Maximum time step size in accordance with CFL condition
@@ -291,37 +300,40 @@ use physical_constants,   only:  kappa
     ! Precipitation rate (m/s)
     precl = precl + rho(1) * qr(1) * velqr(1) / rhoqr
 
-    ! Sedimentation term using upstream differencing (dz [rho * V * qr])
+    ! Sedimentation term using upstream differencing (d/dz [rho * V * qr])
     do k = 1, nz-1
       sed(k) = dt0 * (r(k+1) * qr(k+1) * velqr(k+1) - r(k) * qr(k) * velqr(k)) &
                    & /(r(k) * (z(k+1) - z(k)))
     end do
-    sed(nz)  = -dt0 * qr(nz) * velqr(nz) / (.5 * (z(nz) - z(nz-1)))
+   sed(nz)  = -dt0 * qr(nz) * velqr(nz) / (.5 * (z(nz) - z(nz-1)))
 
     ! Adjustment terms
     do k = 1, nz
 
       ! Autoconversion and accretion rates following KW eq. 2.13a,b
-      qrprod = qc(k) - (qc(k) - dt0 * max(.001*(qc(k) - .001d0), 0.d0)) &
-                                    & / (1.d0 + dt0 * 2.2d0 * qr(k)**.875)
+      qrprod = qc(k) - (qc(k) - dt0 * max(k1 * (qc(k) - a), 0.d0)) &
+                            & / (1.d0 + dt0 * k2 * qr(k)**.875)
       qc(k) = max(qc(k) - qrprod, 0.d0)
-      qr(k) = max(qr(k) + qrprod + sed(k),0.d0)
+      qr(k) = max(qr(k) + qrprod + sed(k), 0.d0)
 
       ! Saturation vapor mixing ratio (gm/gm) following KW eq. 2.11
-      qvs = pc(k) * exp(17.27d0 * (pk(k) * theta(k) - 273.d0)   &
-                            / (pk(k) * theta(k)- 36.d0))
-      prod = (qv(k) - qvs) / (1.d0 + qvs * f5 / (pk(k) * theta(k) - 36.d0)**2)
+      T(k) = pk(k) * theta(k)
+      qvs = (3.8d0 / pc(k)) * exp(17.27d0 * (T(k) - 273.d0) / (T(k)- 36.d0))
+      prod = (qv(k) - qvs) / (1.d0 + qvs * (4093.d0 * lv / cp) / (T(k) - 36.d0)**2)
 
       ! Evaporation rate following KW eq. 2.14a,b
-      ern = min(dt0 * (((1.6d0 + 124.9d0 * (r(k) * qr(k))**.2046)  &
-                            * (r(k)*qr(k))**.525) / (2550000d0 * pc(k) / (3.8d0 * qvs) + 540000d0)) &
-                & *(dim(qvs,qv(k)) / (r(k)*qvs)), max(-prod - qc(k), 0.d0), qr(k))
+      C = 1.6d0 + 124.9d0 * (r(k) * qr(k))**(0.2046d0)
+      evap = min(dt0 * ((C * (r(k) * qr(k))**.525) / (5.4D5 +  2.55D6 / (pc(k) * qvs))) &
+                & * (dim(qvs, qv(k)) / (r(k)*qvs)), max(-prod - qc(k), 0.d0), qr(k))
 
       ! Saturation adjustment following KW eq. 3.10
-      theta(k)= theta(k) + 2500000d0/(1003.d0*pk(k))*(max( prod,-qc(k))-ern)
-      qv(k) = max(qv(k)-max(prod,-qc(k))+ern,0.d0)
-      qc(k) = qc(k)+max(prod,-qc(k))
-      qr(k) = qr(k)-ern
+      theta(k) = theta(k) + lv/(cv * pk(k)) * (max(prod, -qc(k)) - evap)
+      pk(k) = pk(k) - (pk(k) / (cv * T(k))) &
+                          * (lv * ((1.0D0 / cv) - 1.0D0) * (max(prod, -qc(k)) - evap) &
+                                 + lf * sed(k))
+      qv(k) = max(qv(k) - max(prod, -qc(k)) + evap, 0.d0)
+      qc(k) = qc(k) + max(prod, -qc(k))
+      qr(k) = qr(k) - evap
     end do
 
     ! Recalculate liquid water terminal velocity

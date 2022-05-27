@@ -313,7 +313,7 @@ SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, theta, qv, qc, qr, rho, &
   ! Summer 2022 Work
   !-------------------------------------------------
   elseif (prec_type .eq. 2) then
-    CALL KESSLER(   &
+    CALL KESSLER_Z(   &
       theta,        &
       qv,           &
       qc,           &
@@ -327,15 +327,17 @@ SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, theta, qv, qc, qr, rho, &
 
     ! Convert qv to qsv and theta to pressure and temperature
     do k = 1,nz
-      !qsv(k) = qv(k) / (one + qv(k))
-      !rhom(k) = rho(k) / (one - qsv(k))
-      !thetav = theta(k) * (one + zvir * qv(k))
-      !p(k) = p0 * (rhom(k) * rair * thetav / p0)**(cpair/(cpair-rair))
-      !t(k) = p(k) / (rhom(k) * rair * (one + zvir * qv(k)))
-      
+      ! Isochoric
       qsv(k) = qv(k) / (one + qv(k))
-      t(k) = theta(k) * (p(k) / p0)**(rair / cpair)
-      rhom(k) = p(k) / (rair * t(k)  * (one + zvir * qv(k)))
+      rhom(k) = rho(k) / (one - qsv(k))
+      thetav = theta(k) * (one + zvir * qv(k))
+      p(k) = p0 * exner(k)**(cpair / rair)
+      t(k) = theta(k) * exner(k)
+
+      ! Isobaric
+      !qsv(k) = qv(k) / (one + qv(k))
+      !t(k) = theta(k) * (p(k) / p0)**(rair / cpair)
+      !rhom(k) = p(k) / (rair * t(k)  * (one + zvir * qv(k)))
     enddo
 
   else
@@ -493,9 +495,14 @@ SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, theta, qv, qc, qr, rho, &
     ! Convert theta to density
     do k = 1, nz
       qv(k) = qsv(k) / (one - qsv(k))
+      rhom(k) = rho(k) / (one - qsv(k))
       thetav = theta(k) * (one + zvir * qv(k))
-      rhom(k) = (p0 / (rair * thetav)) * (p(k) / p0)**((cpair - rair) / cpair)
-      rho(k) = rhom(k) * (one - qsv(k))
+      p(k) = p0 * (rhom(k) * rair * thetav / p0)**(cpair/(cpair-rair))
+      
+      !qv(k) = qsv(k) / (one - qsv(k))
+      !thetav = theta(k) * (one + zvir * qv(k))
+      !rhom(k) = (p0 / (rair * thetav)) * (p(k) / p0)**((cpair - rair) / cpair)
+      !rho(k) = rhom(k) * (one - qsv(k))
     enddo
   endif
 
