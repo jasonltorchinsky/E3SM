@@ -10,7 +10,7 @@ module dcmip16_wrapper
 ! Implementation of the dcmip2012 dycore tests for the preqx dynamics target
 
 use dcmip12_wrapper,      only: pressure_thickness, set_tracers, get_evenly_spaced_z, set_hybrid_coefficients
-use control_mod,          only: test_case, dcmip16_pbl_type, dcmip16_prec_type, use_moisture, theta_hydrostatic_mode,&
+use control_mod,          only: test_case, dcmip16_pbl_type, dcmip16_prec_type, dcmip16_thrm_type, use_moisture, theta_hydrostatic_mode,&
      sub_case, case_planar_bubble, bubble_prec_type
 use baroclinic_wave,      only: baroclinic_wave_test
 use supercell,            only: supercell_init, supercell_test, supercell_z
@@ -444,7 +444,7 @@ subroutine dcmip2016_test1_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl)
   real(rl) :: max_w, max_precl, min_ps
   real(rl) :: lat, lon, dz_top(np,np), zi(np,np,nlevp),zi_c(nlevp), ps(np,np)
 
-  integer :: pbl_type, prec_type, qi
+  integer :: pbl_type, prec_type, thrm_type, qi
   integer, parameter :: test = 1
   logical :: toy_chemistry_on
 
@@ -458,6 +458,7 @@ subroutine dcmip2016_test1_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl)
   endif
 
   pbl_type  = dcmip16_pbl_type
+  thrm_type = dcmip16_thrm_type
 
   max_w     = -huge(rl)
   max_precl = -huge(rl)
@@ -517,8 +518,19 @@ subroutine dcmip2016_test1_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl)
 
       ! get forced versions of u,v,p,qv,qc,qr. rho is constant
       lat=0.0
-      call DCMIP2016_PHYSICS(test, u_c, v_c, p_c, th_c, qv_c, qc_c, qr_c, rho_c, dt, z_c, zi_c, lat, nlev, &
-                             precl(i,j,ie), pbl_type, prec_type)
+      if (thrm_type .eq. 0) then ! Isochoric (const volume)
+        call DCMIP2016_PHYSICS_Z(test, u_c, v_c, p_c, th_c, qv_c, qc_c, &
+                                 qr_c, rho_c, dt, z_c, zi_c, lat, nlev, &
+                                 precl(i,j,ie), pbl_type, prec_type)
+      elseif (thrm_type .eq. 1) then ! Isobaric (const pressure)
+        call DCMIP2016_PHYSICS_P(test, u_c, v_c, p_c, th_c, qv_c, qc_c, &
+                                 qr_c, rho_c, dt, z_c, zi_c, lat, nlev, &
+                                 precl(i,j,ie), pbl_type, prec_type)
+      else
+        write(*,*) 'Invalid thrm_type specified in DCMIP16_WRAPPER', thrm_type
+        stop
+      endif
+
 
       ! revert column
       u(i,j,:)  = u_c(nlev:1:-1)
@@ -653,7 +665,7 @@ subroutine dcmip2016_test1_pg_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl
   real(rl) :: precl_fv(np,np,1), rcd(6)
   real(rl), allocatable :: qmin(:,:,:), qmax(:,:,:)
 
-  integer :: pbl_type, prec_type
+  integer :: pbl_type, prec_type, thrm_type
   integer, parameter :: test = 1
 
   nf = pg_data%nphys
@@ -661,6 +673,7 @@ subroutine dcmip2016_test1_pg_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl
 
   prec_type = dcmip16_prec_type
   pbl_type  = dcmip16_pbl_type
+  thrm_type = dcmip16_thrm_type
 
   max_w     = -huge(rl)
   max_precl = -huge(rl)
@@ -738,8 +751,18 @@ subroutine dcmip2016_test1_pg_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl
            call gfr_f_get_latlon(ie, i, j, lat, lon)
 
            ! Get forced versions of u,v,p,qv,qc,qr. rho is constant.
-           call DCMIP2016_PHYSICS(test, u_c, v_c, p_c, th_c, qv_c, qc_c, qr_c, rho_c, dt, &
-                z_c, zi_c, lat, nlev, precl_fv(i,j,1), pbl_type, prec_type)
+           if (thrm_type .eq. 0) then ! Isochoric (const volume)
+             call DCMIP2016_PHYSICS_Z(test, u_c, v_c, p_c, th_c, qv_c, qc_c, &
+                                      qr_c, rho_c, dt, z_c, zi_c, lat, nlev, &
+                                      precl(i,j,ie), pbl_type, prec_type)
+           elseif (thrm_type .eq. 1) then ! Isobaric (const pressure)
+             call DCMIP2016_PHYSICS_P(test, u_c, v_c, p_c, th_c, qv_c, qc_c, &
+                                     qr_c, rho_c, dt, z_c, zi_c, lat, nlev, &
+                                     precl(i,j,ie), pbl_type, prec_type)
+           else
+             write(*,*) 'Invalid thrm_type specified in DCMIP16_WRAPPER', thrm_type
+             stop
+           endif
 
            u_fv(i,j,:)   = u_c(nlev:1:-1)
            v_fv(i,j,:)   = v_c(nlev:1:-1)
@@ -862,10 +885,11 @@ subroutine dcmip2016_test2_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl, t
   real(rl) :: max_w, max_precl, min_ps
   real(rl) :: lat, dz_top(np,np), zi(np,np,nlevp),zi_c(nlevp), ps(np,np)
 
-  integer :: pbl_type, prec_type
+  integer :: pbl_type, prec_type, thrm_type
 
   prec_type = dcmip16_prec_type
   pbl_type  = dcmip16_pbl_type
+  thrm_type = dcmip16_thrm_type
 
   if(test==3) prec_type=0 ! kessler only for test 3
 
@@ -923,10 +947,18 @@ subroutine dcmip2016_test2_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl, t
 
       lat=0.0
       ! get forced versions of u,v,p,qv,qc,qr. rho is constant
-      ! CORRECTION: Kessler is isobaric, not isochoric. Trying out isobaric physics.
-      call DCMIP2016_PHYSICS_P(test, u_c, v_c, p_c, th_c, qv_c, qc_c, &
-                               qr_c, rho_c, dt, z_c, zi_c, lat, nlev, &
-                               precl(i,j,ie), pbl_type, prec_type)
+      if (thrm_type .eq. 0) then ! Isochoric (const volume)
+        call DCMIP2016_PHYSICS_Z(test, u_c, v_c, p_c, th_c, qv_c, qc_c, &
+                                 qr_c, rho_c, dt, z_c, zi_c, lat, nlev, &
+                                 precl(i,j,ie), pbl_type, prec_type)
+      elseif (thrm_type .eq. 1) then ! Isobaric (const pressure)
+        call DCMIP2016_PHYSICS_P(test, u_c, v_c, p_c, th_c, qv_c, qc_c, &
+                                 qr_c, rho_c, dt, z_c, zi_c, lat, nlev, &
+                                 precl(i,j,ie), pbl_type, prec_type)
+      else
+        write(*,*) 'Invalid thrm_type specified in DCMIP16_WRAPPER', thrm_type
+        stop
+      endif
 
       ! revert column
       u(i,j,:)  = u_c(nlev:1:-1)

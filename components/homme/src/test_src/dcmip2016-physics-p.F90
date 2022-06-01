@@ -302,40 +302,13 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
       nz,           &
       precl)
 
-    ! Convert qv to qsv and theta to pressure and temperature
+    ! Update temperature, density isobarically
     do k = 1,nz
-      qsv(k) = qv(k) / (one + qv(k))
-      rhom(k) = rho(k) / (one - qsv(k))
-      thetav = theta(k) * (one + zvir * qv(k))
-      p(k) = p0 * (rhom(k) * rair * thetav / p0)**(cpair/(cpair-rair))
-      t(k) = p(k) / (rhom(k) * rair * (one + zvir * qv(k)))
-    enddo
-  
-  !-------------------------------------------------
-  ! Large-scale precipitation, Torchinsky
-  ! Summer 2022 Work
-  !-------------------------------------------------
-  elseif (prec_type .eq. 2) then
-    CALL KESSLER(   &
-      theta,        &
-      qv,           &
-      qc,           &
-      qr,           &
-      rho,          &
-      exner,        &
-      dt,           &
-      z,            &
-      nz,           &
-      precl)
-
-    ! Convert qv to qsv and theta to pressure and temperature
-    do k = 1, nz
-      ! Update temperature, density isobarically
       qsv(k) = qv(k) / (one + qv(k))
       t(k) = theta(k) * (p(k) / p0)**(rair / cpair)
       rhom(k) = p(k) / (rair * t(k)  * (one + zvir * qv(k)))
     enddo
-
+  
   else
     write(*,*) 'Invalid prec_type specified in DCMIP2016_PHYSICS', prec_type
     stop

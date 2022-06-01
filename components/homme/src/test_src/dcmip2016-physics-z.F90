@@ -6,8 +6,9 @@
 !
 !  Change log:
 !
-!  SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, qv, qc, qr, rho,
-!                           dt, z, zi, lat, nz, precl, pbl_type, prec_type)
+!  SUBROUTINE DCMIP2016_PHYSICS_Z(test, u, v, p, qv, qc, qr, rho,
+!                                 dt, z, zi, lat, nz, precl, 
+!                                 pbl_type, prec_type)
 !
 !  Input variables:
 !     test      (IN) DCMIP2016 test id (1,2,3)
@@ -39,6 +40,10 @@
 !           Stony Brook University
 !           Email: kevin.a.reed@stonybrook.edu
 !
+!  Modified by: Jason Torchinsky
+!               University of Wisconsin-Madison
+!               Email: jason.torchinsky@wisc.edu
+!
 !           Kessler is based on a code by Joseph Klemp
 !           (National Center for Atmospheric Research)
 !
@@ -51,8 +56,8 @@
 !
 !=======================================================================
 
-SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, theta, qv, qc, qr, rho, &
-                             dt, z, zi, lat, nz, precl, pbl_type, prec_type)
+SUBROUTINE DCMIP2016_PHYSICS_Z(test, u, v, p, theta, qv, qc, qr, rho, &
+                               dt, z, zi, lat, nz, precl, pbl_type, prec_type)
 
   use physical_constants,   only:  g, Rgas, Cp,Rwater_vapor, rearth0, omega0,dd_pi
 
@@ -308,47 +313,8 @@ SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, theta, qv, qc, qr, rho, &
       t(k) = p(k) / (rhom(k) * rair * (one + zvir * qv(k)))
     enddo
   
-  !-------------------------------------------------
-  ! Large-scale precipitation, Torchinsky
-  ! Summer 2022 Work
-  !-------------------------------------------------
-  elseif (prec_type .eq. 2) then
-    CALL KESSLER(   &
-      theta,        &
-      qv,           &
-      qc,           &
-      qr,           &
-      rho,          &
-      exner,        &
-      dt,           &
-      z,            &
-      nz,           &
-      precl)
-
-    ! Convert qv to qsv and theta to pressure and temperature
-    do k = 1,nz
-      ! Original
-      qsv(k) = qv(k) / (one + qv(k))
-      rhom(k) = rho(k) / (one - qsv(k))
-      thetav = theta(k) * (one + zvir * qv(k))
-      p(k) = p0 * (rhom(k) * rair * thetav / p0)**(cpair/(cpair-rair))
-      t(k) = p(k) / (rhom(k) * rair * (one + zvir * qv(k)))
-
-      ! Isochoric
-      !qsv(k) = qv(k) / (one + qv(k))
-      !thetav = theta(k) * (one + zvir * qv(k))
-      !p(k) = p0 * exner(k)**(cpair / rair)
-      !t(k) = theta(k) * exner(k)
-      !rhom(k) = p(k) / (rair * t(k) * (one + zvir * qv(k))) ! Ensure moist density satisfies EoS
-
-      ! Isobaric
-      !qsv(k) = qv(k) / (one + qv(k))
-      !t(k) = theta(k) * (p(k) / p0)**(rair / cpair)
-      !rhom(k) = p(k) / (rair * t(k)  * (one + zvir * qv(k)))
-    enddo
-
   else
-    write(*,*) 'Invalid prec_type specified in DCMIP2016_PHYSICS', prec_type
+    write(*,*) 'Invalid prec_type specified in DCMIP2016_PHYSICS_Z', prec_type
     stop
   endif
 
@@ -490,30 +456,15 @@ SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, theta, qv, qc, qr, rho, &
     qsv(k) = CEE(k) * qsv(k+1) + CFq(k)
   enddo
 
-  if (prec_type .ne. 2) then
-    ! Convert theta to pressure
-    do k = 1,nz
-      qv(k) = qsv(k) / (one - qsv(k))
-      rhom(k) = rho(k) / (one - qsv(k))
-      thetav = theta(k) * (one + zvir * qv(k))
-      p(k) = p0 * (rhom(k) * rair * thetav / p0)**(cpair/(cpair-rair))
-    enddo
-  elseif (prec_type .eq. 2) then
-    ! Convert theta to density
-    do k = 1, nz
-      qv(k) = qsv(k) / (one - qsv(k))
-      rhom(k) = rho(k) / (one - qsv(k))
-      thetav = theta(k) * (one + zvir * qv(k))
-      p(k) = p0 * (rhom(k) * rair * thetav / p0)**(cpair/(cpair-rair))
-      
-      !qv(k) = qsv(k) / (one - qsv(k))
-      !thetav = theta(k) * (one + zvir * qv(k))
-      !rhom(k) = (p0 / (rair * thetav)) * (p(k) / p0)**((cpair - rair) / cpair)
-      !rho(k) = rhom(k) * (one - qsv(k))
-    enddo
-  endif
-
+  ! Convert theta to pressure
+  do k = 1,nz
+    qv(k) = qsv(k) / (one - qsv(k))
+    rhom(k) = rho(k) / (one - qsv(k))
+    thetav = theta(k) * (one + zvir * qv(k))
+    p(k) = p0 * (rhom(k) * rair * thetav / p0)**(cpair/(cpair-rair))
+  enddo
+   
   return
 
-END SUBROUTINE DCMIP2016_PHYSICS 
+END SUBROUTINE DCMIP2016_PHYSICS_Z
 
