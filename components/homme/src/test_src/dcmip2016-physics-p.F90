@@ -262,7 +262,7 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
   !------------------------------------------------
   ! Large-scale precipitation (Reed-Jablonowski)
   !------------------------------------------------
-  if (prec_type .eq. 1) then
+  elseif (prec_type .eq. 1) then
     precl = 0.d0
 
     do k=1, nz

@@ -239,7 +239,7 @@ module control_mod
   ! for dcmip 2016 test 2
   integer, public :: dcmip16_prec_type = 0;
   integer, public :: dcmip16_pbl_type  = 0;
-  integer, public :: dcmip16_thrm_type = 0; ! Isochoric (0) or isobaric (1) thermodynamics
+  integer, public :: dcmip16_phys_type = 0; ! Isochoric (0) or isobaric (1) thermodynamics
 
   ! for dcmip 2016 test 3
   real (kind=real_kind), public :: dcmip16_mu      = 0        ! additional uniform viscosity (momentum)
