@@ -6,8 +6,9 @@
 !
 !  Change log:
 !
-!  SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, qv, qc, qr, rho,
-!                           dt, z, zi, lat, nz, precl, pbl_type, prec_type)
+!  SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, qv, qc, qr, rho,
+!                                 dt, z, zi, lat, nz, precl, pbl_type, 
+!                                 prec_type)
 !
 !  Input variables:
 !     test      (IN) DCMIP2016 test id (1,2,3)
@@ -42,6 +43,8 @@
 !           Kessler is based on a code by Joseph Klemp
 !           (National Center for Atmospheric Research)
 !
+!  Modified by: Jason Torchinsky
+!
 !  Reference:
 !
 !    Klemp, J. B., W. C. Skamarock, W. C., and S.-H. Park, 2015:
@@ -51,10 +54,10 @@
 !
 !=======================================================================
 
-SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, theta, qv, qc, qr, rho, &
-                             dt, z, zi, lat, nz, precl, pbl_type, prec_type)
+SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
+                               dt, z, zi, lat, nz, precl, pbl_type, prec_type)
 
-  use physical_constants,   only:  g, Rgas, Cp,Rwater_vapor, rearth0, omega0,dd_pi
+  use physical_constants,   only:  g, Rgas, Cp, Rwater_vapor, rearth0, omega0,dd_pi
 
   IMPLICIT NONE
 
@@ -326,25 +329,11 @@ SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, theta, qv, qc, qr, rho, &
       precl)
 
     ! Convert qv to qsv and theta to pressure and temperature
-    do k = 1,nz
-      ! Original
+    do k = 1, nz
+      ! Update temperature, density isobarically
       qsv(k) = qv(k) / (one + qv(k))
-      rhom(k) = rho(k) / (one - qsv(k))
-      thetav = theta(k) * (one + zvir * qv(k))
-      p(k) = p0 * (rhom(k) * rair * thetav / p0)**(cpair/(cpair-rair))
-      t(k) = p(k) / (rhom(k) * rair * (one + zvir * qv(k)))
-
-      ! Isochoric
-      !qsv(k) = qv(k) / (one + qv(k))
-      !thetav = theta(k) * (one + zvir * qv(k))
-      !p(k) = p0 * exner(k)**(cpair / rair)
-      !t(k) = theta(k) * exner(k)
-      !rhom(k) = p(k) / (rair * t(k) * (one + zvir * qv(k))) ! Ensure moist density satisfies EoS
-
-      ! Isobaric
-      !qsv(k) = qv(k) / (one + qv(k))
-      !t(k) = theta(k) * (p(k) / p0)**(rair / cpair)
-      !rhom(k) = p(k) / (rair * t(k)  * (one + zvir * qv(k)))
+      t(k) = theta(k) * (p(k) / p0)**(rair / cpair)
+      rhom(k) = p(k) / (rair * t(k)  * (one + zvir * qv(k)))
     enddo
 
   else
@@ -490,30 +479,15 @@ SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, theta, qv, qc, qr, rho, &
     qsv(k) = CEE(k) * qsv(k+1) + CFq(k)
   enddo
 
-  if (prec_type .ne. 2) then
-    ! Convert theta to pressure
-    do k = 1,nz
-      qv(k) = qsv(k) / (one - qsv(k))
-      rhom(k) = rho(k) / (one - qsv(k))
-      thetav = theta(k) * (one + zvir * qv(k))
-      p(k) = p0 * (rhom(k) * rair * thetav / p0)**(cpair/(cpair-rair))
-    enddo
-  elseif (prec_type .eq. 2) then
-    ! Convert theta to density
-    do k = 1, nz
-      qv(k) = qsv(k) / (one - qsv(k))
-      rhom(k) = rho(k) / (one - qsv(k))
-      thetav = theta(k) * (one + zvir * qv(k))
-      p(k) = p0 * (rhom(k) * rair * thetav / p0)**(cpair/(cpair-rair))
-      
-      !qv(k) = qsv(k) / (one - qsv(k))
-      !thetav = theta(k) * (one + zvir * qv(k))
-      !rhom(k) = (p0 / (rair * thetav)) * (p(k) / p0)**((cpair - rair) / cpair)
-      !rho(k) = rhom(k) * (one - qsv(k))
-    enddo
-  endif
+  ! Convert theta to density via IGL (Klemp, Wilhemson 1978)
+  do k = 1, nz
+    qv(k) = qsv(k) / (one - qsv(k))
+    thetav = theta(k) * (one + zvir * qv(k))
+    rhom(k) = (p0 / (rair * thetav)) * (p(k) / p0)**((cpair - rair) / cpair)
+    rho(k) = rhom(k) * (one - qsv(k))
+  enddo
 
   return
 
-END SUBROUTINE DCMIP2016_PHYSICS 
+END SUBROUTINE DCMIP2016_PHYSICS_P
 

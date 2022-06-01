@@ -923,8 +923,10 @@ subroutine dcmip2016_test2_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl, t
 
       lat=0.0
       ! get forced versions of u,v,p,qv,qc,qr. rho is constant
-      call DCMIP2016_PHYSICS(test, u_c, v_c, p_c, th_c, qv_c, qc_c, qr_c, rho_c, dt, z_c, zi_c, lat, nlev, &
-                             precl(i,j,ie), pbl_type, prec_type)
+      ! CORRECTION: Kessler is isobaric, not isochoric. Trying out isobaric physics.
+      call DCMIP2016_PHYSICS_P(test, u_c, v_c, p_c, th_c, qv_c, qc_c, &
+                               qr_c, rho_c, dt, z_c, zi_c, lat, nlev, &
+                               precl(i,j,ie), pbl_type, prec_type)
 
       ! revert column
       u(i,j,:)  = u_c(nlev:1:-1)
@@ -938,7 +940,6 @@ subroutine dcmip2016_test2_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl, t
     ! convert from theta to T w.r.t. new model state
     ! assume hydrostatic pressure pi changed by qv forcing
     ! assume NH pressure perturbation unchanged
-    !! Kessler is isobaric, testing no pressure update (JLT 2022/05/25) !!
     delta_ps = sum( (rho_dry/rho)*dp*(qv-qv0) , 3 )
     do k=1,nlev
        p(:,:,k) = p(:,:,k) + hvcoord%hybm(k)*delta_ps(:,:)
