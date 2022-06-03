@@ -14,14 +14,14 @@
 !     test      (IN) DCMIP2016 test id (1,2,3)
 !     u      (INOUT) zonal velocity on model levels (m/s)
 !     v      (INOUT) meridional velocity on model levels (m/s)
-!     p      (INOUT) total pressure on model levels (Pa)
+!     p         (IN) total pressure on model levels (Pa)
 !     qv     (INOUT) water vapor mixing ratio on model levels (kg/kg)
 !     qc     (INOUT) cloud water mixing ratio on model levels (kg/kg)
 !     qr     (INOUT) rain water mixing ratio on model levels (kg/kg)
 !     rho       (IN) dry air density on model levels (kg/m^3)
 !     dt        (IN) time step (s)
-!     z         (IN) heights of model levels in the grid column (m)
-!     zi        (IN) heights of model interfaces levels in the grid column (m)
+!     z      (INOUT) heights of model levels in the grid column (m)
+!     zi     (INOUT) heights of model interfaces levels in the grid column (m)
 !     lat       (IN) latitude of column
 !     nz        (IN) number of levels in the column
 !     precl     (IN) large-scale precip rate (m/s)
@@ -71,11 +71,12 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
   REAL(8), DIMENSION(nz), INTENT(INOUT) :: &
             u       ,  & ! Zonal velocity on model levels (m/s)
             v       ,  & ! Meridional velocity on model levels (m/s)
-            p       ,  & ! Pressure on model levels (Pa)
             theta   ,  & ! Potential temperature on model levels
             qv      ,  & ! Water vapor mixing ratio (kg/kg)
             qc      ,  & ! Cloud water mixing ratio (kg/kg)
-            qr           ! Rain water mixing ratio (kg/kg)
+            qr      ,  & ! Rain water mixing ratio (kg/kg)
+            z            ! Heights of model levels (m)
+
 
   REAL(8), DIMENSION(nz), INTENT(INOUT) :: &
             rho          ! Dry air density on model levels (kg/m^3)
@@ -84,9 +85,9 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
             dt           ! Time step (s)
 
   REAL(8), DIMENSION(nz), INTENT(IN) :: &
-            z            ! Heights of model levels (m)
+             p       ,  & ! Pressure on model levels (Pa)
 
-  REAL(8), DIMENSION(nz+1), INTENT(IN) :: &
+  REAL(8), DIMENSION(nz+1), INTENT(INOUT) :: &
             zi           ! Heights of model interfaces (m)
 
   REAL(8), INTENT(IN) :: &
@@ -204,7 +205,8 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
   ! Variables defined at interfaces
   REAL(8), DIMENSION(nz+1) :: &
     Km,                       & ! Eddy diffusivity for boundary layer
-    Ke                          ! Eddy diffusivity for boundary layer
+    Ke,                       & ! Eddy diffusivity for boundary layer
+    pi                        & ! Hydrostatic pressure
 
   if (prec_type < 0) return
 
@@ -248,7 +250,8 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
   precl = 0.d0
 
   !--------------------------------------------------------------
-  ! Calculate moist density, specific humidity and temperature
+  ! Calculate moist density, specific humidity, temperature,
+  ! and hydrostatic pressure
   !--------------------------------------------------------------
   do k = 1, nz
     rhom(k) = rho(k) * (1.0 + qv(k))
@@ -257,6 +260,9 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
    !t(k) = p(k) / (rhom(k) * rair * (one + zvir * qv(k)))
     exner(k) = (p(k) / p0)**(rair/cpair)
     t(k) = theta(k)*exner(k)
+  enddo
+  do k = nz + 1, 2, -1
+    pi(k - 1) = 0 ! LOOK HERE 
   enddo
 
   !------------------------------------------------
@@ -276,8 +282,7 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
         precl = precl + deltaqsv * rhom(k) * dz / (dt * rhow)
 
         qv(k) = qsv(k) / (1.0 - qsv(k))
-        rhom(k) = rho(k) / (1.0 - qsv(k))
-        p(k) = rhom(k) * rair * t(k) * (one + zvir * qv(k))
+        rhom(k) = p(k) / (rair * t(k) * (one + zvir * qv(k)))
       endif
     enddo
 
@@ -302,17 +307,25 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
       nz,           &
       precl)
 
-    ! Update temperature, density isobarically
-    do k = 1,nz
+    ! Update temperature isobarically
+    do k = 1, nz
       qsv(k) = qv(k) / (one + qv(k))
       t(k) = theta(k) * (p(k) / p0)**(rair / cpair)
-      rhom(k) = p(k) / (rair * t(k)  * (one + zvir * qv(k)))
+      rhom(k) = p(k) / (rair * t(k) * (one + zvir * qv(k)))
     enddo
-  
+
   else
     write(*,*) 'Invalid prec_type specified in DCMIP2016_PHYSICS', prec_type
     stop
   endif
+
+  !----------------------------------------------------
+  ! Update the geometric levels
+  !----------------------------------------------------
+  
+  do k = 2, nz
+    zi(k) = zi(k - 1) + 
+  enddo
 
   !----------------------------------------------------
   ! Do not apply surface fluxes or PBL for supercell

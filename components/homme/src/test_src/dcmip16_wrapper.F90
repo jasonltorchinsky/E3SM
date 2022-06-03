@@ -979,11 +979,11 @@ subroutine dcmip2016_test2_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl, t
     ! convert from theta to T w.r.t. new model state
     ! assume hydrostatic pressure pi changed by qv forcing
     ! assume NH pressure perturbation unchanged
-    delta_ps = sum( (rho_dry/rho)*dp*(qv-qv0) , 3 )
-    do k=1,nlev
-       p(:,:,k) = p(:,:,k) + hvcoord%hybm(k)*delta_ps(:,:)
-    enddo
-    exner_kess = (p/p0)**(Rgas/Cp)
+    !delta_ps = sum( (rho_dry/rho)*dp*(qv-qv0) , 3 )
+    !do k=1,nlev
+    !   p(:,:,k) = p(:,:,k) + hvcoord%hybm(k)*delta_ps(:,:)
+    !enddo
+    !exner_kess = (p/p0)**(Rgas/Cp)
     T = exner_kess*theta_kess
 
 
