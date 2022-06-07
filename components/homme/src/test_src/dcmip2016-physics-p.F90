@@ -85,7 +85,7 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
             dt           ! Time step (s)
 
   REAL(8), DIMENSION(nz), INTENT(IN) :: &
-             p       ,  & ! Pressure on model levels (Pa)
+             p           ! Pressure on model levels (Pa)
 
   REAL(8), DIMENSION(nz+1), INTENT(INOUT) :: &
             zi           ! Heights of model interfaces (m)
@@ -165,7 +165,7 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
   REAL(8) ::                  &
     za,                       & ! Altitude of lowest model level (m)
     Tsurf,                    & ! Sea surface temperature (K)
-    ps,                       & ! Surface pressure (Pa)
+    phs,                      & ! Surface pressure (Pa)
     pres,                     & ! Pressure on model level (Pa)
     presi,                    & ! Pressure on model interface (Pa)
     rhomi,                    & ! Moist pressure on model interface (kg/m^3)
@@ -200,15 +200,16 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
     CFu,                      & ! Matrix coefficients for PBL scheme
     CFv,                      & ! Matrix coefficients for PBL scheme
     CFt,                      & ! Matrix coefficients for PBL scheme
-    CFq                         ! Matrix coefficients for PBL scheme
+    CFq,                      & ! Matrix coefficients for PBL scheme
+    dph                         ! Hydrostatic pressure thickness of each layer
 
   ! Variables defined at interfaces
   REAL(8), DIMENSION(nz+1) :: &
     Km,                       & ! Eddy diffusivity for boundary layer
-    Ke,                       & ! Eddy diffusivity for boundary layer
-    pi                        & ! Hydrostatic pressure
+    Ke                          ! Eddy diffusivity for boundary layer
 
   if (prec_type < 0) return
+
 
   !------------------------------------------------
   ! Store altitude of lowest model level
@@ -251,7 +252,7 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
 
   !--------------------------------------------------------------
   ! Calculate moist density, specific humidity, temperature,
-  ! and hydrostatic pressure
+  ! and hydrostatic pressure thickness of each layer
   !--------------------------------------------------------------
   do k = 1, nz
     rhom(k) = rho(k) * (1.0 + qv(k))
@@ -260,15 +261,13 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
    !t(k) = p(k) / (rhom(k) * rair * (one + zvir * qv(k)))
     exner(k) = (p(k) / p0)**(rair/cpair)
     t(k) = theta(k)*exner(k)
-  enddo
-  do k = nz + 1, 2, -1
-    pi(k - 1) = 0 ! LOOK HERE 
+    dph(k) = - gravit * rhom(k) * (zi(k + 1) - zi(k))
   enddo
 
   !------------------------------------------------
   ! Large-scale precipitation (Reed-Jablonowski)
   !------------------------------------------------
-  elseif (prec_type .eq. 1) then
+  if (prec_type .eq. 1) then
     precl = 0.d0
 
     do k=1, nz
@@ -320,11 +319,11 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
   endif
 
   !----------------------------------------------------
-  ! Update the geometric levels
+  ! Update the geometric height levels
   !----------------------------------------------------
-  
-  do k = 2, nz
-    zi(k) = zi(k - 1) + 
+  do k = 1, nz
+   zi(k+1) = zi(k) - dph(k) / (gravit * rhom(k))
+   z(k) = (zi(k+1) + zi(k)) / 2.d0
   enddo
 
   !----------------------------------------------------
@@ -389,11 +388,11 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
   !------------------------------------------------
 
   ! Hydrostatic surface pressure
-  ps = 0.d0
-  do k = 1, nz
-    ps = ps + gravit * rhom(k) * (zi(k+1) - zi(k))
+  phs = 0.d0
+  do k = nz, 1, -1
+    phs = phs + gravit * rhom(k) * (zi(k+1) - zi(k))
   enddo
-  qsats = epsilo * e0 / ps * exp(-latvap / rh2o * ((one/Tsurf)-(one/T0)))
+  qsats = epsilo * e0 / phs * exp(-latvap / rh2o * ((one/Tsurf)-(one/T0)))
 
   u(1) = u(1) / (one + dt * Cd * wind / za)
   v(1) = v(1) / (one + dt * Cd * wind / za)
@@ -401,8 +400,11 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
   t(1) = (t(1) + C * wind * Tsurf * dt / za) / (one + C * wind * dt / za)
 
   qv(1) = qsv(1) / (1.0 - qsv(1))
-  rhom(1) = rho(1) / (1.0 - qsv(1))
-  p(1) = t(1) * rhom(1) * rair * (one + zvir * qv(1))
+  rhom(1) = p(1) / (rair * t(1) * (one + zvir * qv(1)))
+  zi(2) = zi(1) - dph(1) / (gravit * rhom(1))
+  z(1) = (zi(2) + zi(1)) / 2.d0
+  !rhom(1) = rho(1) / (1.0 - qsv(1))
+  !p(1) = t(1) * rhom(1) * rair * (one + zvir * qv(1))
 
   !------------------------------------------------
   ! Boundary layer
@@ -471,6 +473,9 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
     thetav = theta(k) * (one + zvir * qv(k))
     rhom(k) = (p0 / (rair * thetav)) * (p(k) / p0)**((cpair - rair) / cpair)
     rho(k) = rhom(k) * (one - qsv(k))
+
+    zi(k+1) = zi(k) - dph(k) / (gravit * rhom(k))
+    z(k) = (zi(k+1) + zi(k)) / 2.d0
   enddo
 
   return

@@ -761,11 +761,8 @@ subroutine dcmip2016_test1_pg_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl
                                       precl(i,j,ie), pbl_type, prec_type)
            elseif (phys_type .eq. 1) then ! Isobaric (const pressure)
              call DCMIP2016_PHYSICS_P(test, u_c, v_c, p_c, th_c, qv_c, qc_c, &
-                                     qr_c, rho_c, dt, z_c, zi_c, lat, nlev, &
-                                     precl(i,j,ie), pbl_type, prec_type)
-           elseif (phys_type .eq. 2) then ! Simple isobaric physics v5
-             call SIMPLE_PHYSICS_V5(1, nlev, dt, lat, T, __, u_c, v_c, p_c, &
-                                    & __, __, __, ps_fv(i,j), precl(i,j,ie), test)
+                                      qr_c, rho_c, dt, z_c, zi_c, lat, nlev, &
+                                      precl(i,j,ie), pbl_type, prec_type)
            else
              write(*,*) 'Invalid phys_type specified in DCMIP16_WRAPPER', phys_type
              stop
