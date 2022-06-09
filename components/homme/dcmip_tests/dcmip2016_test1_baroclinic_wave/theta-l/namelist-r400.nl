@@ -26,9 +26,10 @@
   hypervis_subcycle = 1                         ! 1 = no hyperviz subcycling
   moisture          = 'wet'
   theta_hydrostatic_mode = .false.
-  dcmip16_prec_type = 1                         ! 0=kessler physics
-  dcmip16_pbl_type  = -1                        ! 0=reed-jablonowski pbl, -1 = none
-/
+  dcmip16_prec_type = 1                         ! 0 = Kessler, 1 = Reed-Jablonowski
+  dcmip16_pbl_type  = -1                        ! 0 = Reed-Jablonowski, 1 = Bryan, -1 = None
+  dcmip16_phys_type = 1                         ! 0 = Isochoric (PHYSICS_Z)
+/                                               ! 1 = Isobaric (PHYSICS_P)
 &vert_nl
   vfile_mid         = "../vcoord/camm-30.ascii"
   vfile_int         = "../vcoord/cami-30.ascii"

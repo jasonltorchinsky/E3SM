@@ -552,14 +552,23 @@ subroutine dcmip2016_test1_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl)
 
     enddo; enddo;
 
-    ! convert from theta to T w.r.t. new model state
-    ! assume hydrostatic pressure pi changed by qv forcing
-    ! assume NH pressure perturbation unchanged
-    delta_ps = sum( (rho_dry/rho)*dp*(qv-qv0) , 3 )
-    do k=1,nlev
-       p(:,:,k) = p(:,:,k) + hvcoord%hybm(k)*delta_ps(:,:)
-    enddo
-    exner_kess = (p/p0)**(Rgas/Cp)
+    ! Convert from theta to T w.r.t. new model state
+    if (phys_type .eq. 0) then ! Isochoric (const volume)
+      ! Update pressure
+      ! assume hydrostatic pressure pi changed by qv forcing
+      ! assume NH pressure perturbation unchanged
+      delta_ps = sum( (rho_dry/rho)*dp*(qv-qv0) , 3 )
+      do k=1,nlev
+        p(:,:,k) = p(:,:,k) + hvcoord%hybm(k)*delta_ps(:,:)
+      enddo
+      exner_kess = (p/p0)**(Rgas/Cp)
+    elseif (phys_type .eq. 1) then ! Isobaric (const pressure)
+      ! Change in theta is change in temperature
+    else
+      write(*,*) 'Invalid phys_type specified in DCMIP16_WRAPPER', phys_type
+      stop
+    endif
+ 
     T = exner_kess*theta_kess
 
     ! set dynamics forcing
@@ -789,13 +798,23 @@ subroutine dcmip2016_test1_pg_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl
      Q_fv(:nf,:nf,:,5) = Q_fv(:nf,:nf,:,5) + dt*ddt_cl2(:nf,:nf,:)
 
      ! Convert from theta to T w.r.t. new model state.
-     ! Assume hydrostatic pressure pi changed by qv forcing.
-     ! Assume NH pressure perturbation is unchanged.
-     delta_ps(:nf,:nf) = sum(dp_fv(:nf,:nf,:)*(Q_fv(:nf,:nf,:,iqv) - Q0_fv(:nf,:nf,:,iqv)), 3)
-     do k = 1,nlev
-        p_fv(:nf,:nf,k) = p_fv(:nf,:nf,k) + hvcoord%hybm(k)*delta_ps(:nf,:nf)
-     enddo
-     exner_kess_fv(:nf,:nf,:) = (p_fv(:nf,:nf,:)/p0)**(Rgas/Cp)
+     ! Convert from theta to T w.r.t. new model state
+     if (phys_type .eq. 0) then ! Isochoric (const volume)
+       ! Update pressure
+       ! assume hydrostatic pressure pi changed by qv forcing
+       ! assume NH pressure perturbation unchanged
+       delta_ps(:nf,:nf) = sum(dp_fv(:nf,:nf,:)*(Q_fv(:nf,:nf,:,iqv) - Q0_fv(:nf,:nf,:,iqv)), 3)
+       do k = 1,nlev
+         p_fv(:nf,:nf,k) = p_fv(:nf,:nf,k) + hvcoord%hybm(k)*delta_ps(:nf,:nf)
+       enddo
+       exner_kess_fv(:nf,:nf,:) = (p_fv(:nf,:nf,:)/p0)**(Rgas/Cp)
+     elseif (phys_type .eq. 1) then ! Isobaric (const pressure)
+       ! Change in theta is change in temperature
+     else
+       write(*,*) 'Invalid phys_type specified in DCMIP16_WRAPPER', phys_type
+       stop
+     endif
+ 
      T_fv(:nf,:nf,:) = exner_kess_fv(:nf,:nf,:)*theta_kess_fv(:nf,:nf,:)
 
      ! These gfr calls are special to this routine, to handle
@@ -973,16 +992,25 @@ subroutine dcmip2016_test2_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl, t
       theta_kess(i,j,:) = th_c(nlev:1:-1)
 
     enddo; enddo;
-    ! convert from theta to T w.r.t. new model state
-    ! assume hydrostatic pressure pi changed by qv forcing
-    ! assume NH pressure perturbation unchanged
-    !delta_ps = sum( (rho_dry/rho)*dp*(qv-qv0) , 3 )
-    !do k=1,nlev
-    !   p(:,:,k) = p(:,:,k) + hvcoord%hybm(k)*delta_ps(:,:)
-    !enddo
-    !exner_kess = (p/p0)**(Rgas/Cp)
+ 
+   ! Convert from theta to T w.r.t. new model state
+    if (phys_type .eq. 0) then ! Isochoric (const volume)
+      ! Update pressure
+      ! assume hydrostatic pressure pi changed by qv forcing
+      ! assume NH pressure perturbation unchanged
+      delta_ps = sum( (rho_dry/rho)*dp*(qv-qv0) , 3 )
+      do k=1,nlev
+        p(:,:,k) = p(:,:,k) + hvcoord%hybm(k)*delta_ps(:,:)
+      enddo
+      exner_kess = (p/p0)**(Rgas/Cp)
+    elseif (phys_type .eq. 1) then ! Isobaric (const pressure)
+      ! Change in theta is change in temperature
+    else
+      write(*,*) 'Invalid phys_type specified in DCMIP16_WRAPPER', phys_type
+      stop
+    endif
+ 
     T = exner_kess*theta_kess
-
 
     ! set dynamics forcing
     elem(ie)%derived%FM(:,:,1,:) = (u - u0)/dt
@@ -1028,6 +1056,14 @@ subroutine dcmip2016_test3_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl)
   real(rl), dimension(np,np,nlevp):: zi
   real(rl), dimension(np,np)      :: ps,delta_ps(np,np)
   real(rl) :: max_w, max_precl, min_ps
+
+  integer :: pbl_type, prec_type, phys_type
+
+  prec_type = dcmip16_prec_type
+  pbl_type  = dcmip16_pbl_type
+  phys_type = dcmip16_phys_type
+
+  !! NOTE: Only Kessler physics are present, so prec_type and pbl_type are ignored.
 
   max_w     = -huge(rl)
   max_precl = -huge(rl)
@@ -1099,14 +1135,25 @@ subroutine dcmip2016_test3_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl)
     qr    = qr_inv   (:,:,nlev:1:-1)
 
 
-    ! convert from theta to T w.r.t. new model state
-    ! assume hydrostatic pressure pi changed by qv forcing
-    ! assume NH pressure perturbation unchanged
-    delta_ps = sum( (rho_dry/rho)*dp*(qv-qv0) , 3 )
-    do k=1,nlev
-       p(:,:,k) = p(:,:,k) + hvcoord%hybm(k)*delta_ps(:,:)
-    enddo
-    exner_kess = (p/p0)**(Rgas/Cp)
+    ! Convert from theta to T w.r.t. new model state
+    !! NOTE: Kessler is formulated with constant pressure !!
+    !! if other physics are added in, then constant volume might make sense. !!
+    if (phys_type .eq. 0) then ! Isochoric (const volume)
+      ! Update pressure
+      ! assume hydrostatic pressure pi changed by qv forcing
+      ! assume NH pressure perturbation unchanged
+      delta_ps = sum( (rho_dry/rho)*dp*(qv-qv0) , 3 )
+      do k=1,nlev
+        p(:,:,k) = p(:,:,k) + hvcoord%hybm(k)*delta_ps(:,:)
+      enddo
+      exner_kess = (p/p0)**(Rgas/Cp)
+    elseif (phys_type .eq. 1) then ! Isobaric (const pressure)
+      ! Change in theta is change in temperature
+    else
+      write(*,*) 'Invalid phys_type specified in DCMIP16_WRAPPER', phys_type
+      stop
+    endif
+ 
     T = exner_kess*theta_kess
 
     ! set dynamics forcing

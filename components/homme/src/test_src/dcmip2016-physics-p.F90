@@ -261,8 +261,19 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
    !t(k) = p(k) / (rhom(k) * rair * (one + zvir * qv(k)))
     exner(k) = (p(k) / p0)**(rair/cpair)
     t(k) = theta(k)*exner(k)
-    dph(k) = - gravit * rhom(k) * (zi(k + 1) - zi(k))
+    dph(k) = - gravit * rhom(k) * (zi(k + 1) - zi(k)) ! NOTE; Is negative, as ph decreases going up.
   enddo
+
+  !--------------------------------------------------------------
+  ! Calculate hydrostatic surface pressure, surface saturation 
+  ! specific humidity
+  !--------------------------------------------------------------
+  phs = 0.d0
+  do k = nz, 1, -1
+    phs = phs + gravit * rhom(k) * (zi(k+1) - zi(k))
+  enddo
+  qsats = epsilo * e0 / phs * exp(-latvap / rh2o * ((one/Tsurf)-(one/T0)))
+
 
   !------------------------------------------------
   ! Large-scale precipitation (Reed-Jablonowski)
@@ -282,6 +293,7 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
 
         qv(k) = qsv(k) / (1.0 - qsv(k))
         rhom(k) = p(k) / (rair * t(k) * (one + zvir * qv(k)))
+        theta(k) = t(k) * (p0 / p(k))**(rair / cpair)
       endif
     enddo
 
@@ -387,12 +399,6 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
   ! Surface fluxes
   !------------------------------------------------
 
-  ! Hydrostatic surface pressure
-  phs = 0.d0
-  do k = nz, 1, -1
-    phs = phs + gravit * rhom(k) * (zi(k+1) - zi(k))
-  enddo
-  qsats = epsilo * e0 / phs * exp(-latvap / rh2o * ((one/Tsurf)-(one/T0)))
 
   u(1) = u(1) / (one + dt * Cd * wind / za)
   v(1) = v(1) / (one + dt * Cd * wind / za)
@@ -401,10 +407,11 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
 
   qv(1) = qsv(1) / (1.0 - qsv(1))
   rhom(1) = p(1) / (rair * t(1) * (one + zvir * qv(1)))
-  zi(2) = zi(1) - dph(1) / (gravit * rhom(1))
-  z(1) = (zi(2) + zi(1)) / 2.d0
-  !rhom(1) = rho(1) / (1.0 - qsv(1))
-  !p(1) = t(1) * rhom(1) * rair * (one + zvir * qv(1))
+
+  do k = 1, nz
+   zi(k+1) = zi(k) - dph(k) / (gravit * rhom(k))
+   z(k) = (zi(k+1) + zi(k)) / 2.d0
+  enddo
 
   !------------------------------------------------
   ! Boundary layer
@@ -470,8 +477,8 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
   ! Convert theta to density via IGL (Klemp, Wilhemson 1978)
   do k = 1, nz
     qv(k) = qsv(k) / (one - qsv(k))
-    thetav = theta(k) * (one + zvir * qv(k))
-    rhom(k) = (p0 / (rair * thetav)) * (p(k) / p0)**((cpair - rair) / cpair)
+    t(k) =  theta(k) * (p(k) / p0)**(rair/cpair)
+    rhom(k) = p(k) / (rair * t(k) * (one + zvir * qv(k))) 
     rho(k) = rhom(k) * (one - qsv(k))
 
     zi(k+1) = zi(k) - dph(k) / (gravit * rhom(k))
