@@ -39,7 +39,7 @@ echo "NCPU = $NCPU"
 namelist=namelist-$prefix.nl
 \cp -f $namelist input.nl
 date
-#srun -K -c 1 -n $NCPU -N $SLURM_NNODES  $EXEC < input.nl
+srun -K -c 1 -n $NCPU -N $SLURM_NNODES  $EXEC < input.nl
 date
 
 ncl plot_supercell_wvel.ncl
