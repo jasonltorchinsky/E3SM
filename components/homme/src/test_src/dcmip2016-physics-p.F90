@@ -15,9 +15,9 @@
 !     u      (INOUT) zonal velocity on model levels (m/s)
 !     v      (INOUT) meridional velocity on model levels (m/s)
 !     p         (IN) total pressure on model levels (Pa)
-!     qv     (INOUT) water vapor mixing ratio on model levels (kg/kg)
-!     qc     (INOUT) cloud water mixing ratio on model levels (kg/kg)
-!     qr     (INOUT) rain water mixing ratio on model levels (kg/kg)
+!     qv     (INOUT) dry water vapor mixing ratio on model levels (kg/kg)
+!     qc     (INOUT) dry cloud water mixing ratio on model levels (kg/kg)
+!     qr     (INOUT) dry rain water mixing ratio on model levels (kg/kg)
 !     rho       (IN) dry air density on model levels (kg/m^3)
 !     dt        (IN) time step (s)
 !     z      (INOUT) heights of model levels in the grid column (m)
@@ -72,13 +72,13 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
             u       ,  & ! Zonal velocity on model levels (m/s)
             v       ,  & ! Meridional velocity on model levels (m/s)
             theta   ,  & ! Potential temperature on model levels
-            qv      ,  & ! Water vapor mixing ratio (kg/kg)
-            qc      ,  & ! Cloud water mixing ratio (kg/kg)
-            qr      ,  & ! Rain water mixing ratio (kg/kg)
+            qv      ,  & ! Dry water vapor mixing ratio (kg/kg)
+            qc      ,  & ! Dry cloud water mixing ratio (kg/kg)
+            qr      ,  & ! Dry rain water mixing ratio (kg/kg)
             z            ! Heights of model levels (m)
 
 
-  REAL(8), DIMENSION(nz), INTENT(INOUT) :: &
+  REAL(8), DIMENSION(nz), INTENT(IN) :: &
             rho          ! Dry air density on model levels (kg/m^3)
 
   REAL(8), INTENT(IN) :: & 
@@ -261,7 +261,7 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
    !t(k) = p(k) / (rhom(k) * rair * (one + zvir * qv(k)))
     exner(k) = (p(k) / p0)**(rair/cpair)
     t(k) = theta(k)*exner(k)
-    dph(k) = - gravit * rhom(k) * (zi(k + 1) - zi(k)) ! NOTE; Is negative, as ph decreases going up.
+    dph(k) = - gravit * rhom(k) * (zi(k + 1) - zi(k)) ! NOTE: Is negative, as ph decreases going up.
   enddo
 
   !--------------------------------------------------------------
@@ -293,7 +293,7 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
 
         qv(k) = qsv(k) / (1.0 - qsv(k))
         rhom(k) = p(k) / (rair * t(k) * (one + zvir * qv(k)))
-        theta(k) = t(k) * (p0 / p(k))**(rair / cpair)
+        theta(k) = t(k) / exner(k)
       endif
     enddo
 
@@ -301,10 +301,6 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
   ! Large-scale precipitation (Kessler)
   !------------------------------------------------
   elseif (prec_type .eq. 0) then
-    !do k=1,nz
-    !  exner(k) = (p(k) / p0)**(rair/cpair)
-    !  theta(k) = t(k) / exner(k)
-    !enddo
 
     CALL KESSLER(   &
       theta,        &
@@ -321,7 +317,7 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
     ! Update temperature isobarically
     do k = 1, nz
       qsv(k) = qv(k) / (one + qv(k))
-      t(k) = theta(k) * (p(k) / p0)**(rair / cpair)
+      t(k) = theta(k) * exner(k)
       rhom(k) = p(k) / (rair * t(k) * (one + zvir * qv(k)))
     enddo
 
@@ -375,8 +371,11 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
 
   ! Bryan Planetary Boundary Layer
   elseif (pbl_type .eq. 1) then
-
-    do k = 1, nz+1
+    Km(1) = 0.d0
+    Ke(1) = 0.d0
+    Km(nz+1) = 0.d0
+    Ke(nz+1) = 0.d0
+    do k = 2, nz
 
       if (zi(k) .le. zpbltop) then
         Km(k) = kappa * sqrt(Cd) * wind * zi(k) &
@@ -387,6 +386,7 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
         Km(k) = 0.d0
         Ke(k) = 0.d0
       endif
+
     enddo
 
   ! Invalid PBL
@@ -479,7 +479,6 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
     qv(k) = qsv(k) / (one - qsv(k))
     t(k) =  theta(k) * (p(k) / p0)**(rair/cpair)
     rhom(k) = p(k) / (rair * t(k) * (one + zvir * qv(k))) 
-    rho(k) = rhom(k) * (one - qsv(k))
 
     zi(k+1) = zi(k) - dph(k) / (gravit * rhom(k))
     z(k) = (zi(k+1) + zi(k)) / 2.d0

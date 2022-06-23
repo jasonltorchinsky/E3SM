@@ -1,13 +1,10 @@
-
-
-
-
 #ifndef CAM
 #include "config.h"
 
-module dcmip16_wrapper
+module bendall19_wrapper
 
-! Implementation of the dcmip2012 dycore tests for the preqx dynamics target
+! Implementation of the tests of Bendall et. al. (2019) doi:10.1002/qj.3841.
+! Orginiates from dcmip16_wrapper
 
 use dcmip12_wrapper,      only: pressure_thickness, set_tracers, get_evenly_spaced_z, set_hybrid_coefficients
 use control_mod,          only: test_case, dcmip16_pbl_type, dcmip16_prec_type, dcmip16_phys_type, use_moisture, theta_hydrostatic_mode,&
@@ -54,7 +51,7 @@ contains
 
 !---------------------------------------------------------------------
 !init routine to call before any dcmip16 inin routines, including restart runs
-subroutine dcmip2016_init()
+subroutine bendall19_init()
   implicit none
 !$OMP BARRIER
 !$OMP MASTER
@@ -62,52 +59,67 @@ subroutine dcmip2016_init()
     allocate(precl(np,np,nelemd))
     precl(:,:,:) = 0.0
   else
-    call abortmp('ERROR: in dcmip2016_init() precl has already been allocated') 
+    call abortmp('ERROR: in bendall19_init() precl has already been allocated') 
   endif
 !$OMP END MASTER
 !$OMP BARRIER
 
-end subroutine dcmip2016_init
+end subroutine bendall19_init
 
-!_____________________________________________________________________
-subroutine dcmip2016_test1(elem,hybrid,hvcoord,nets,nete)
+!-----------------------------------------------------------------------
+! Bendall 2019 Test 3 - Rising Thermal with Rain
+!-----------------------------------------------------------------------
+subroutine bendall19_test3(elem, hybrid, hvcoord, nets, nete)
 
-  ! moist baroclinic wave test
+  type(element_t), intent(inout), target :: elem(:)    ! Element array
+  type(hybrid_t),  intent(in)            :: hybrid     ! Hybrid parallel structure
+  type(hvcoord_t), intent(inout)         :: hvcoord    ! Hybrid vertical coordinates
+  integer,         intent(in)            :: nets, nete ! Start/End element index
 
-  type(element_t),    intent(inout), target :: elem(:)                  ! element array
-  type(hybrid_t),     intent(in)            :: hybrid                   ! hybrid parallel structure
-  type(hvcoord_t),    intent(inout)         :: hvcoord                  ! hybrid vertical coordinates
-  integer,            intent(in)            :: nets,nete                ! start, end element index
+  integer,  parameter :: use_zcoords = 0      ! Geometric (1) or Pressure (0) vertical coordinate
+  integer,  parameter :: is_deep     = 0      ! Shallow (0) or Deep (1) atmosphere 
+  integer,  parameter :: pertt       = 0      ! Exponential (0) or other perturbation type
+  real(rl), parameter :: dcmip_X     = 1.0_rl ! Full- (1.0) or not- scale planet
+  integer  :: moist                           ! Moist (1) or not (0) version
+  integer  :: i, j, k, ie                     ! Loop indices
+  real(rl) :: lon, lat                        ! Pointwise coordiantes
 
-  integer,  parameter :: use_zcoords  = 0                               ! use vertical pressure coordinates
-  integer,  parameter :: is_deep      = 0                               ! use shallow atmosphere approximation
-  integer,  parameter :: pertt        = 0                               ! use exponential perturbation type
-  real(rl), parameter :: dcmip_X      = 1.0_rl                          ! full scale planet
-  integer :: moist                                                      ! use moist version
-  integer :: i,j,k,ie                                                   ! loop indices
-  real(rl):: lon,lat                                                    ! pointwise coordiantes
-
-  real(rl), dimension(np,np,nlev):: p,z,u,v,w,T,thetav,rho,dp           ! field values
-  real(rl), dimension(np,np,nlevp):: p_i,w_i,z_i
-  real(rl), dimension(np,np):: ps, phis
-  real(rl), dimension(np,np,nlev,6):: q
+  real(rl), dimension(np,np,nlev) :: & ! Field values at mid-levels
+            p,      & ! Pressure [Pa]
+            z,      & ! Geometric height [m]
+            u,      & ! Zonal wind velocity [m s^(-1)]
+            v,      & ! Meridional wind velocity [m s^(-1)]
+            w,      & ! Vertical wind velocity [m s^(-1)]
+            T,      & ! Temperature [K]
+            thetav, & ! Virtual potential temperature [K]
+            rho,    & ! Moist density [kg m^(-3)]
+            dp        ! Pressure level thickness [Pa]
+  real(rl), dimension(np,np,nlevp) :: & ! Field values at interfaces
+            p_i,    & ! Pressure [Pa]
+            z_i,    & ! Geometric height [m]
+            w_i       ! Vertical wind velocity [m s^(-1)]
+  real(rl), dimension(np,np) :: & ! Field values at surface
+            ps,     & ! Pressure [Pa]
+            phis      ! Geopotential [m^2 s^(-2)]
+  real(rl), dimension(np,np,nlev,6) :: q ! Water mixing ratios (Vapor,:,:,:,:,:) [kg kg^-1]
 
   real(rl) :: min_thetav, max_thetav
   min_thetav = +huge(rl)
   max_thetav = -huge(rl)
 
   moist = 0
-  if (use_moisture) moist=1
+  if (use_moisture) moist = 1
 
-  if (hybrid%masterthread) write(iulog,*) 'initializing dcmip2016 test 1: moist baroclinic wave'
+  if (hybrid%masterthread) write(iulog,*) &
+     'Initializing Bendall 2019 test 3 - Rising Thermal with Rain'
 
-  if (qsize<6) call abortmp('ERROR: test requires qsize>=6')
+  if (qsize < 6) call abortmp('ERROR: test requires qsize>=6')
 
-  ! set initial conditions
+  ! Set initial conditions
   do ie = nets,nete
-    do k=1,nlevp; do j=1,np; do i=1,np
+    do k = 1,nlevp; do j = 1,np; do i = 1,np
 
-        ! no surface topography
+        ! No surface topography
         p_i(i,j,k)  = p0*hvcoord%etai(k)
 
         lon = elem(ie)%spherep(i,j)%lon
@@ -151,7 +163,7 @@ subroutine dcmip2016_test1(elem,hybrid,hvcoord,nets,nete)
   !print *,"min thetav = ",min_thetav, "max thetav=",max_thetav
 
 
-end subroutine
+end subroutine bendall19_test3
 
 subroutine dcmip2016_test1_pg(elem,hybrid,hvcoord,nets,nete,nphys)
   use gllfvremap_mod, only: gfr_init
@@ -499,7 +511,7 @@ subroutine dcmip2016_test1_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl)
     qr  = qr*rho/rho_dry
 
     ! save un-forced prognostics
-    u0=u; v0=v; T0=T; qv0=qv; qc0=qc; qr0=qr;
+    u0=u; v0=v; T0=T; qv0=qv; qc0=qc; qr0=qr
 
     ! apply forcing to columns
     do j=1,np; do i=1,np
@@ -516,14 +528,21 @@ subroutine dcmip2016_test1_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl)
       zi_c = zi (i,j,nlevp:1:-1)
       th_c = theta_kess(i,j,nlev:1:-1)
 
-      ! Get forced versions of u,v,p,qv,qc,qr. 
-      ! Physics assumes constant pressure, we use it to get the
-      ! phase changes and isobaric temperature change
-      ! Temperature change is then converted if needed
-      lat=0.
-      call DCMIP2016_PHYSICS_P(test, u_c, v_c, p_c, th_c, qv_c, qc_c, &
-                               qr_c, rho_c, dt, z_c, zi_c, lat, nlev, &
-                               precl(i,j,ie), pbl_type, prec_type)
+      ! get forced versions of u,v,p,qv,qc,qr. rho is constant
+      lat=0.0
+      if (phys_type .eq. 0) then ! Isochoric (const volume)
+        call DCMIP2016_PHYSICS_Z(test, u_c, v_c, p_c, th_c, qv_c, qc_c, &
+                                 qr_c, rho_c, dt, z_c, zi_c, lat, nlev, &
+                                 precl(i,j,ie), pbl_type, prec_type)
+      elseif (phys_type .eq. 1) then ! Isobaric (const pressure)
+        call DCMIP2016_PHYSICS_P(test, u_c, v_c, p_c, th_c, qv_c, qc_c, &
+                                 qr_c, rho_c, dt, z_c, zi_c, lat, nlev, &
+                                 precl(i,j,ie), pbl_type, prec_type)
+      else
+        write(*,*) 'Invalid phys_type specified in DCMIP16_WRAPPER', phys_type
+        stop
+      endif
+
 
       ! revert column
       u(i,j,:)  = u_c(nlev:1:-1)
@@ -532,7 +551,6 @@ subroutine dcmip2016_test1_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl)
       qc(i,j,:) = qc_c(nlev:1:-1)
       qr(i,j,:) = qr_c(nlev:1:-1)
       theta_kess(i,j,:) = th_c(nlev:1:-1)
-
 
       if (toy_chemistry_on) then 
         lon = elem(ie)%spherep(i,j)%lon
@@ -546,19 +564,29 @@ subroutine dcmip2016_test1_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl)
 
     enddo; enddo;
 
-    T = theta_kess * exner_kess
-
-    ! set dynamics forcing
-    elem(ie)%derived%FM(:,:,1,:) = (u - u0)/dt
-    elem(ie)%derived%FM(:,:,2,:) = (v - v0)/dt
+    ! Convert from theta to T w.r.t. new model state
     if (phys_type .eq. 0) then ! Isochoric (const volume)
-      elem(ie)%derived%FT(:,:,:) = cp / (cp - Rgas) * (T - T0)/dt
+      ! Update pressure
+      ! assume hydrostatic pressure pi changed by qv forcing
+      ! assume NH pressure perturbation unchanged
+      delta_ps = sum( (rho_dry/rho)*dp*(qv-qv0) , 3 )
+      do k=1,nlev
+        p(:,:,k) = p(:,:,k) + hvcoord%hybm(k)*delta_ps(:,:)
+      enddo
+      exner_kess = (p/p0)**(Rgas/Cp)
     elseif (phys_type .eq. 1) then ! Isobaric (const pressure)
-      elem(ie)%derived%FT(:,:,:) = (T - T0)/dt
+      ! Change in theta is change in temperature
     else
       write(*,*) 'Invalid phys_type specified in DCMIP16_WRAPPER', phys_type
       stop
     endif
+ 
+    T = exner_kess*theta_kess
+
+    ! set dynamics forcing
+    elem(ie)%derived%FM(:,:,1,:) = (u - u0)/dt
+    elem(ie)%derived%FM(:,:,2,:) = (v - v0)/dt
+    elem(ie)%derived%FT(:,:,:)   = (T - T0)/dt
 
     ! set tracer-mass forcing. conserve tracer mass
     ! rho_dry*(qv-qv0)*dz = FQ deta, dz/deta = -dp/(g*rho)
@@ -720,10 +748,8 @@ subroutine dcmip2016_test1_pg_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl
      exner_kess_fv(:nf,:nf,:) = (p_fv(:nf,:nf,:)/p0)**(Rgas/Cp)
      theta_kess_fv(:nf,:nf,:) = T_fv(:nf,:nf,:)/exner_kess_fv(:nf,:nf,:)
 
-     u0(:nf,:nf,:) = u_fv(:nf,:nf,:) 
-     v0(:nf,:nf,:) = v_fv(:nf,:nf,:) 
-     T0(:nf,:nf,:) = T_fv(:nf,:nf,:)
-     Q0_fv(:nf,:nf,:,:) = Q_fv(:nf,:nf,:,:)
+     u0(:nf,:nf,:) = u_fv(:nf,:nf,:); v0(:nf,:nf,:) = v_fv(:nf,:nf,:); T0(:nf,:nf,:) = T_fv(:nf,:nf,:)
+     Q0_fv(:nf,:nf,:,:) = Q_fv(:nf,:nf,:,:);
 
      ! Convert to dry mixing ratios.
      do i = 1,3
@@ -749,13 +775,19 @@ subroutine dcmip2016_test1_pg_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl
 
            call gfr_f_get_latlon(ie, i, j, lat, lon)
 
-           ! Get forced versions of u,v,p,qv,qc,qr. 
-           ! Physics assumes constant pressure, we use it to get the
-           ! phase changes and isobaric temperature change
-           ! Temperature change is then converted if needed
-           call DCMIP2016_PHYSICS_P(test, u_c, v_c, p_c, th_c, qv_c, qc_c, &
-                                    qr_c, rho_c, dt, z_c, zi_c, lat, nlev, &
-                                    precl(i,j,ie), pbl_type, prec_type)
+           ! Get forced versions of u,v,p,qv,qc,qr. rho is constant.
+           if (phys_type .eq. 0) then ! Isochoric (const volume)
+             call DCMIP2016_PHYSICS_Z(test, u_c, v_c, p_c, th_c, qv_c, qc_c, &
+                                      qr_c, rho_c, dt, z_c, zi_c, lat, nlev, &
+                                      precl(i,j,ie), pbl_type, prec_type)
+           elseif (phys_type .eq. 1) then ! Isobaric (const pressure)
+             call DCMIP2016_PHYSICS_P(test, u_c, v_c, p_c, th_c, qv_c, qc_c, &
+                                      qr_c, rho_c, dt, z_c, zi_c, lat, nlev, &
+                                      precl(i,j,ie), pbl_type, prec_type)
+           else
+             write(*,*) 'Invalid phys_type specified in DCMIP16_WRAPPER', phys_type
+             stop
+           endif
 
            u_fv(i,j,:)   = u_c(nlev:1:-1)
            v_fv(i,j,:)   = v_c(nlev:1:-1)
@@ -777,8 +809,25 @@ subroutine dcmip2016_test1_pg_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl
      Q_fv(:nf,:nf,:,4) = Q_fv(:nf,:nf,:,4) + dt*ddt_cl(:nf,:nf,:)
      Q_fv(:nf,:nf,:,5) = Q_fv(:nf,:nf,:,5) + dt*ddt_cl2(:nf,:nf,:)
 
+     ! Convert from theta to T w.r.t. new model state.
+     ! Convert from theta to T w.r.t. new model state
+     if (phys_type .eq. 0) then ! Isochoric (const volume)
+       ! Update pressure
+       ! assume hydrostatic pressure pi changed by qv forcing
+       ! assume NH pressure perturbation unchanged
+       delta_ps(:nf,:nf) = sum(dp_fv(:nf,:nf,:)*(Q_fv(:nf,:nf,:,iqv) - Q0_fv(:nf,:nf,:,iqv)), 3)
+       do k = 1,nlev
+         p_fv(:nf,:nf,k) = p_fv(:nf,:nf,k) + hvcoord%hybm(k)*delta_ps(:nf,:nf)
+       enddo
+       exner_kess_fv(:nf,:nf,:) = (p_fv(:nf,:nf,:)/p0)**(Rgas/Cp)
+     elseif (phys_type .eq. 1) then ! Isobaric (const pressure)
+       ! Change in theta is change in temperature
+     else
+       write(*,*) 'Invalid phys_type specified in DCMIP16_WRAPPER', phys_type
+       stop
+     endif
  
-     T_fv(:nf,:nf,:) = exner_kess_fv * theta_kess_fv
+     T_fv(:nf,:nf,:) = exner_kess_fv(:nf,:nf,:)*theta_kess_fv(:nf,:nf,:)
 
      ! These gfr calls are special to this routine, to handle
      ! DCMIP-specific precl.
@@ -788,15 +837,7 @@ subroutine dcmip2016_test1_pg_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl
      precl(:,:,ie) = wrk3(:,:,1)
 
      ! T, uv tendencies
-     if (phys_type .eq. 0) then ! Isochoric (const volume)
-       pg_data%T(:,:,ie) = reshape((cp / (cp - Rgas)) * (T_fv(:nf,:nf,:) - T0(:nf,:nf,:))/dt, &
-                                   (/ncol,nlev/))
-     elseif (phys_type .eq. 1) then ! Isobaric (const pressure)
-       pg_data%T(:,:,ie) = reshape((T_fv(:nf,:nf,:) - T0(:nf,:nf,:))/dt, (/ncol,nlev/))
-     else
-       write(*,*) 'Invalid phys_type specified in DCMIP16_WRAPPER', phys_type
-       stop
-     endif
+     pg_data%T(:,:,ie) = reshape((T_fv(:nf,:nf,:) - T0(:nf,:nf,:))/dt, (/ncol,nlev/))
      pg_data%uv(:,1,:,ie) = reshape((u_fv(:nf,:nf,:) - u0(:nf,:nf,:))/dt, (/ncol,nlev/))
      pg_data%uv(:,2,:,ie) = reshape((v_fv(:nf,:nf,:) - v0(:nf,:nf,:))/dt, (/ncol,nlev/))
      ! q state
@@ -871,7 +912,7 @@ subroutine dcmip2016_test2_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl, t
   integer,            intent(in)            :: test                     ! dcmip2016 test number
 
   integer :: i,j,k,ie                                                     ! loop indices
-  real(rl), dimension(np,np,nlev) :: u,v,w,T,exner_kess,theta_kess,p,dp,rho,z,qv,qc,qr,delta_T
+  real(rl), dimension(np,np,nlev) :: u,v,w,T,exner_kess,theta_kess,p,dp,rho,z,qv,qc,qr
   real(rl), dimension(np,np,nlev) :: u0,v0,T0,qv0,qc0,qr0
   real(rl), dimension(np,np,nlev) :: rho_dry,rho_new,Rstar,p_pk
   real(rl), dimension(np,np)      :: delta_ps(np,np)
@@ -921,32 +962,38 @@ subroutine dcmip2016_test2_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl, t
 
 
     ! save un-forced prognostics (DRY)
-    u0=u; v0=v; T0=T; qv0=qv; qc0=qc; qr0=qr;
+    u0=u; v0=v; T0=T; qv0=qv; qc0=qc; qr0=qr
 
 
     ! apply forcing to columns
     do j=1,np; do i=1,np
 
       ! invert column
-      u_c   = u  (i,j,nlev:1:-1)
-      v_c   = v  (i,j,nlev:1:-1)
-      qv_c  = qv (i,j,nlev:1:-1)
-      qc_c  = qc (i,j,nlev:1:-1)
-      qr_c  = qr (i,j,nlev:1:-1)
-      p_c   = p  (i,j,nlev:1:-1)
-      rho_c = rho_dry(i,j,nlev:1:-1)
-      z_c   = z  (i,j,nlev:1:-1)
-      zi_c  = zi (i,j,nlevp:1:-1)
-      th_c  = theta_kess(i,j,nlev:1:-1)
+      u_c  = u  (i,j,nlev:1:-1)
+      v_c  = v  (i,j,nlev:1:-1)
+      qv_c = qv (i,j,nlev:1:-1)
+      qc_c = qc (i,j,nlev:1:-1)
+      qr_c = qr (i,j,nlev:1:-1)
+      p_c  = p  (i,j,nlev:1:-1)
+      rho_c= rho_dry(i,j,nlev:1:-1)
+      z_c  = z  (i,j,nlev:1:-1)
+      zi_c = zi (i,j,nlevp:1:-1)
+      th_c = theta_kess(i,j,nlev:1:-1)
 
-      ! Get forced versions of u, v, p, qv, qc, qr. 
-      ! Physics assumes constant pressure, we use it to get the
-      ! phase changes and isobaric temperature change
-      ! Temperature change is then converted if needed
       lat=0.0
-      call DCMIP2016_PHYSICS_P(test, u_c, v_c, p_c, th_c, qv_c, qc_c, &
-                               qr_c, rho_c, dt, z_c, zi_c, lat, nlev, &
-                               precl(i,j,ie), pbl_type, prec_type)
+      ! get forced versions of u,v,p,qv,qc,qr.
+      if (phys_type .eq. 0) then ! Isochoric (const volume)
+        call DCMIP2016_PHYSICS_Z(test, u_c, v_c, p_c, th_c, qv_c, qc_c, &
+                                 qr_c, rho_c, dt, z_c, zi_c, lat, nlev, &
+                                 precl(i,j,ie), pbl_type, prec_type)
+      elseif (phys_type .eq. 1) then ! Isobaric (const pressure)
+        call DCMIP2016_PHYSICS_P(test, u_c, v_c, p_c, th_c, qv_c, qc_c, &
+                                 qr_c, rho_c, dt, z_c, zi_c, lat, nlev, &
+                                 precl(i,j,ie), pbl_type, prec_type)
+      else
+        write(*,*) 'Invalid phys_type specified in DCMIP16_WRAPPER', phys_type
+        stop
+      endif
 
       ! revert column
       u(i,j,:)  = u_c(nlev:1:-1)
@@ -957,20 +1004,31 @@ subroutine dcmip2016_test2_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl, t
       theta_kess(i,j,:) = th_c(nlev:1:-1)
 
     enddo; enddo;
-
-    T = theta_kess * exner_kess 
-
-    ! set dynamics forcing
-    elem(ie)%derived%FM(:,:,1,:) = (u - u0)/dt
-    elem(ie)%derived%FM(:,:,2,:) = (v - v0)/dt
+ 
+   ! Convert from theta to T w.r.t. new model state
     if (phys_type .eq. 0) then ! Isochoric (const volume)
-      elem(ie)%derived%FT(:,:,:) = cp / (cp - Rgas) * (T - T0)/dt
+      ! Update pressure
+      ! assume hydrostatic pressure pi changed by qv forcing
+      ! assume NH pressure perturbation unchanged
+      delta_ps = sum( (rho_dry/rho)*dp*(qv-qv0) , 3 )
+      do k=1,nlev
+        p(:,:,k) = p(:,:,k) + hvcoord%hybm(k)*delta_ps(:,:)
+      enddo
+      exner_kess = (p/p0)**(Rgas/Cp)
     elseif (phys_type .eq. 1) then ! Isobaric (const pressure)
-      elem(ie)%derived%FT(:,:,:) = (T - T0)/dt
+      ! Change in theta is change in temperature
     else
       write(*,*) 'Invalid phys_type specified in DCMIP16_WRAPPER', phys_type
       stop
     endif
+ 
+    T = exner_kess*theta_kess
+
+    ! set dynamics forcing
+    elem(ie)%derived%FM(:,:,1,:) = (u - u0)/dt
+    elem(ie)%derived%FM(:,:,2,:) = (v - v0)/dt
+    elem(ie)%derived%FT(:,:,:)   = (T-T0)/dt
+
 
     ! set tracer-mass forcing. conserve tracer mass
     ! rho_dry*(qv-qv0)*dz = FQ deta, dz/deta = -dp/(g*rho)
@@ -1089,19 +1147,32 @@ subroutine dcmip2016_test3_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl)
     qc    = qc_inv   (:,:,nlev:1:-1)
     qr    = qr_inv   (:,:,nlev:1:-1)
 
-    T = theta_kess * exner_kess
 
-    ! set dynamics forcing
-    elem(ie)%derived%FM(:,:,1,:) = 0
-    elem(ie)%derived%FM(:,:,2,:) = 0
-    if (phys_type .eq. 0) then ! Isochoric (const volume)
-      elem(ie)%derived%FT(:,:,:) = cp / (cp - Rgas) * (T - T0)/dt
+    ! Convert from theta to T w.r.t. new model state
+    !! NOTE: Kessler is formulated with constant pressure !!
+    !! if other physics are added in, then constant volume might make sense. !!
+    if (phys_type .eq. 0) then ! Isochoric (const volume, buggy historical version)
+      ! Update pressure
+      ! assume hydrostatic pressure pi changed by qv forcing
+      ! assume NH pressure perturbation unchanged
+      delta_ps = sum( (rho_dry/rho)*dp*(qv-qv0) , 3 )
+      do k=1,nlev
+        p(:,:,k) = p(:,:,k) + hvcoord%hybm(k)*delta_ps(:,:)
+      enddo
+      exner_kess = (p/p0)**(Rgas/Cp)
     elseif (phys_type .eq. 1) then ! Isobaric (const pressure)
-      elem(ie)%derived%FT(:,:,:) = (T - T0)/dt
+      ! Change in theta is change in temperature
     else
       write(*,*) 'Invalid phys_type specified in DCMIP16_WRAPPER', phys_type
       stop
     endif
+ 
+    T = exner_kess*theta_kess
+
+    ! set dynamics forcing
+    elem(ie)%derived%FM(:,:,1,:) = 0
+    elem(ie)%derived%FM(:,:,2,:) = 0
+    elem(ie)%derived%FT(:,:,:)   = (T-T0)/dt
 
     ! set tracer-mass forcing. conserve tracer mass.  
     ! rho_dry*(qv-qv0)*dz = FQ deta, dz/deta = -dp/(g*rho)
@@ -1122,5 +1193,5 @@ subroutine dcmip2016_test3_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl)
   call dcmip2016_append_measurements(max_w,max_precl,min_ps,tl,hybrid)
 
 end subroutine
-end module dcmip16_wrapper
+end module bendall19_wrapper
 #endif`

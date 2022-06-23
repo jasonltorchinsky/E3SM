@@ -33,8 +33,8 @@
   se_ftype          = 0
   moisture          = 'wet'
   theta_hydrostatic_mode = .false.
-  dcmip16_prec_type = 0                         ! 0 = kessler,     1 = reed-jablonowski
-  dcmip16_pbl_type  = 0                         ! 0 = basic pbl,   1 = bryan pbl
+  dcmip16_prec_type = 0                         ! Not implemented; always Kessler
+  dcmip16_pbl_type  = 0                         ! Not implemented
   dcmip16_phys_type = 1                         ! 0 = Isochoric (PHYSICS_Z), 
 /                                               ! 1 = Isobaric (PHSYICS_P)
 
