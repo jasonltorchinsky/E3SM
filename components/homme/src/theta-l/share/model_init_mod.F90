@@ -15,7 +15,7 @@ module model_init_mod
 
   use element_mod,        only: element_t
   use derivative_mod,     only: derivative_t,gradient_sphere, laplace_sphere_wk
-  use hybvcoord_mod, 	  only: hvcoord_t
+  use hybvcoord_mod,      only: hvcoord_t
   use hybrid_mod,         only: hybrid_t
   use dimensions_mod,     only: np,nlev,nlevp
   use element_ops,        only: set_theta_ref
@@ -23,7 +23,7 @@ module model_init_mod
   use viscosity_mod,      only: make_c0_vector
   use kinds,              only: real_kind,iulog
   use control_mod,        only: qsplit,theta_hydrostatic_mode, hv_ref_profiles, &
-       hv_theta_correction, tom_sponge_start
+       hv_theta_correction, hcoord, tom_sponge_start
   use time_mod,           only: timelevel_qdp, timelevel_t
   use physical_constants, only: g, TREF, Rgas, kappa
   use imex_mod,           only: test_imex_jacobian
@@ -47,7 +47,7 @@ contains
     real (kind=real_kind) :: gradtemp(np,np,2,nets:nete)
     real (kind=real_kind) :: temp(np,np,nlev),ps_ref(np,np)
     real (kind=real_kind) :: ptop_over_press
-
+    real (kind=real_kind) :: p_i(np,np,nlevp)
 
     ! other theta specific model initialization should go here    
     do ie=nets,nete
@@ -71,16 +71,27 @@ contains
          elem(ie)%state%phinh_i(:,:,nlevp,t) = elem(ie)%state%phis(:,:)
       enddo
 
-      ! initialize reference states used by hyberviscosity
-      ps_ref(:,:) = hvcoord%ps0 * exp ( -elem(ie)%state%phis(:,:)/(Rgas*TREF)) 
-      do k=1,nlev
-         elem(ie)%derived%dp_ref(:,:,k) = ( hvcoord%hyai(k+1) - hvcoord%hyai(k) )*hvcoord%ps0 + &
-              (hvcoord%hybi(k+1)-hvcoord%hybi(k))*ps_ref(:,:)
-      enddo
-      call set_theta_ref(hvcoord,elem(ie)%derived%dp_ref,elem(ie)%derived%theta_ref)
-      temp=elem(ie)%derived%theta_ref*elem(ie)%derived%dp_ref
-      call phi_from_eos(hvcoord,elem(ie)%state%phis,&
-           temp,elem(ie)%derived%dp_ref,elem(ie)%derived%phi_ref)
+      ! initialize reference states used by hyperviscosity
+      if (hcoord==1) then
+         elem(ie)%derived%phi_ref(:,:,:)=elem(ie)%state%phinh_i(:,:,:,tl%n0)
+         do k=1,nlevp
+            p_i(:,:,k)=hvcoord%ps0 * exp ( -elem(ie)%derived%phi_ref(:,:,k)/(Rgas*TREF)) 
+         enddo
+         do k=1,nlev
+            elem(ie)%derived%dp_ref(:,:,k)=p_i(:,:,k+1)-p_i(:,:,k)
+         enddo
+         call set_theta_ref(hvcoord,elem(ie)%derived%dp_ref,elem(ie)%derived%theta_ref)
+      else
+         ps_ref(:,:) = hvcoord%ps0 * exp ( -elem(ie)%state%phis(:,:)/(Rgas*TREF)) 
+         do k=1,nlev
+            elem(ie)%derived%dp_ref(:,:,k) = ( hvcoord%hyai(k+1) - hvcoord%hyai(k) )*hvcoord%ps0 + &
+                 (hvcoord%hybi(k+1)-hvcoord%hybi(k))*ps_ref(:,:)
+         enddo
+         call set_theta_ref(hvcoord,elem(ie)%derived%dp_ref,elem(ie)%derived%theta_ref)
+         temp=elem(ie)%derived%theta_ref*elem(ie)%derived%dp_ref
+         call phi_from_eos(hvcoord,elem(ie)%state%phis,&
+              temp,elem(ie)%derived%dp_ref,elem(ie)%derived%phi_ref)
+      end if
       if (hv_ref_profiles==0) then
          ! keep PHI profile, but dont use theta and dp:
          elem(ie)%derived%theta_ref=0

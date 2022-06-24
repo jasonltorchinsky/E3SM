@@ -36,7 +36,7 @@ contains
   !
   use kinds,          only: real_kind
   use hybvcoord_mod,  only: hvcoord_t
-  use control_mod,    only: rsplit
+  use control_mod,    only: rsplit, hcoord
   use hybrid_mod,     only: hybrid_t
   use physical_constants, only : Cp,g
 
@@ -48,9 +48,14 @@ contains
   integer :: ie,i,j,k,np1,nets,nete,np1_qdp
   integer :: q
 
-  real (kind=real_kind), dimension(np,np,nlev)  :: dp,dp_star
+  real (kind=real_kind), dimension(np,np,nlev)  :: dp,dp_star,dz,dz_star
   real (kind=real_kind), dimension(np,np,nlevp) :: phi_ref
   real (kind=real_kind), dimension(np,np,nlev,5)  :: ttmp
+
+  if (hcoord==1) then
+     call vertical_remap_hcoord(hybrid,elem,hvcoord,dt,np1,np1_qdp,nets,nete)
+     return
+  endif
 
   call t_startf('vertical_remap')
 
@@ -170,9 +175,134 @@ contains
   call t_stopf('vertical_remap')
   end subroutine vertical_remap
 
+subroutine vertical_remap_hcoord(hybrid,elem,hvcoord,dt,np1,np1_qdp,nets,nete)
 
-end module 
+  ! This routine is called at the end of the vertically Lagrangian
+  ! dynamics step to compute the vertical flux needed to get back
+  ! to reference eta levels
+  !
+  ! input:
+  !     derived%dp()  delta p on levels at beginning of timestep
+  !     state%dp3d(np1)  delta p on levels at end of timestep
+  ! output:
+  !     state%ps_v(np1)          surface pressure at time np1
+  !     derived%eta_dot_dpdn()   vertical flux from final Lagrangian
+  !                              levels to reference eta levels
+  !
+  use kinds,          only: real_kind
+  use hybvcoord_mod,  only: hvcoord_t
+  use control_mod,    only: rsplit
+  use hybrid_mod,     only: hybrid_t
+  use physical_constants, only : Cp,g
+
+  type (hybrid_t),  intent(in)    :: hybrid  ! distributed parallel structure (shared)
+  type (element_t), intent(inout) :: elem(:)
+  type (hvcoord_t)                :: hvcoord
+  real (kind=real_kind)           :: dt
+
+  integer :: ie,i,j,k,np1,nets,nete,np1_qdp
+  integer :: q
+
+  real (kind=real_kind), dimension(np,np,nlev)  :: dp,dp_star,dz,dz_star
+  real (kind=real_kind), dimension(np,np,nlevp) :: phi_ref
+  real (kind=real_kind), dimension(np,np,nlev,5)  :: ttmp
+
+  call t_startf('vertical_remap_hcoord')
+  do ie=nets,nete
+     ! update final ps_v
+     elem(ie)%state%ps_v(:,:,np1) = hvcoord%hyai(1)*hvcoord%ps0 + &
+          sum(elem(ie)%state%dp3d(:,:,:,np1),3)
+
+     if (rsplit==0) then
+        dp(:,:,:) = elem(ie)%state%dp3d(:,:,:,np1)  
+        do k=1,nlev
+           dp_star(:,:,k) = dp(:,:,k) + dt*(elem(ie)%derived%eta_dot_dpdn(:,:,k+1) -&
+                elem(ie)%derived%eta_dot_dpdn(:,:,k))
+        enddo
+     else
+        dp_star(:,:,:) = elem(ie)%state%dp3d(:,:,:,np1)
+        ! need to remap density to compute dp on ref levels
+        ! note: change sign based on usual convention, so dz,dz_star are positive
+        do k=1,nlev
+           dz_star(:,:,k)=elem(ie)%state%phinh_i(:,:,k,np1)-elem(ie)%state%phinh_i(:,:,k+1,np1)
+           dz(:,:,k)=elem(ie)%derived%phi_ref(:,:,k)-elem(ie)%derived%phi_ref(:,:,k+1)
+        enddo
+        dp = dp_star  
+        call remap1(dp,np,1,dz_star,dz,vert_remap_u_alg)  ! reamp density, conserving rho*dz
+     endif
 
 
+     if (minval(dp_star)<0) then
+        do k=1,nlev
+        do i=1,np
+        do j=1,np
+           if (dp_star(i,j,k ) < 0) then
+              print *,'index ie,i,j,k = ',ie,i,j,k
+              print *,'dp,dp_star = ',dp(i,j,k),dp_star(i,j,k)
+              print *,'eta_dot_dpdn = ',elem(ie)%derived%eta_dot_dpdn(i,j,k+1),elem(ie)%derived%eta_dot_dpdn(i,j,k)
+              print *,"column location lat,lon (radians):",elem(ie)%spherep(i,j)%lat,elem(ie)%spherep(i,j)%lon
+           endif
+        enddo
+        enddo
+        enddo
+        call abortmp('negative layer thickness.  timestep or remap time too large')
+     endif
+
+     if (rsplit>0) then
+
+        !  REMAP u,v,T from levels in dp3d() to REF levels
+        ttmp(:,:,:,1)=elem(ie)%state%v(:,:,1,:,np1)*dp_star
+        ttmp(:,:,:,2)=elem(ie)%state%v(:,:,2,:,np1)*dp_star
+        ttmp(:,:,:,3)=elem(ie)%state%vtheta_dp(:,:,:,np1)
+        do k=1,nlev
+           ttmp(:,:,k,4)=elem(ie)%state%w_i(:,:,k+1,np1)-&
+                elem(ie)%state%w_i(:,:,k,np1)
+        enddo
+
+        call t_startf('vertical_remap1_1')
+        call remap1(ttmp,np,4,dp_star,dp,vert_remap_u_alg)
+        !call remap1(ttmp,np,4,dz_star,dz) ! also works, but lets use dp to be consistent with Q remap
+        call t_stopf('vertical_remap1_1')
+
+        elem(ie)%state%v(:,:,1,:,np1)=ttmp(:,:,:,1)/dp
+        elem(ie)%state%v(:,:,2,:,np1)=ttmp(:,:,:,2)/dp
+        elem(ie)%state%vtheta_dp(:,:,:,np1)=ttmp(:,:,:,3)
 
 
+        do k=nlev,1,-1
+           elem(ie)%state%w_i(:,:,k,np1)=&
+                elem(ie)%state%w_i(:,:,k+1,np1)-ttmp(:,:,k,4)  !/dp(:,:,k)
+        enddo
+
+        elem(ie)%state%phinh_i(:,:,:,np1)=elem(ie)%derived%phi_ref(:,:,:)
+        ! should not be needed, but to minimize truncation error from scan above
+        elem(ie)%state%w_i(:,:,1,np1) = 0 
+
+        ! since u changed, update w b.c.:
+        elem(ie)%state%w_i(:,:,nlevp,np1) = (elem(ie)%state%v(:,:,1,nlev,np1)*elem(ie)%derived%gradphis(:,:,1) + &
+             elem(ie)%state%v(:,:,2,nlev,np1)*elem(ie)%derived%gradphis(:,:,2))/g
+
+     endif
+
+     ! remap the gll tracers from lagrangian levels (dp_star)  to REF levels dp
+     if (qsize>0 .and. np1_qdp > 0) then
+
+       call t_startf('vertical_remap1_3')
+       call remap1(elem(ie)%state%Qdp(:,:,:,:,np1_qdp),np,qsize,dp_star,dp,vert_remap_q_alg)
+       call t_stopf('vertical_remap1_3')
+
+       !dir$ simd
+       do q=1,qsize
+          elem(ie)%state%Q(:,:,:,q)=elem(ie)%state%Qdp(:,:,:,q,np1_qdp)/dp(:,:,:)
+       enddo
+     endif
+
+     ! reinitialize dp3d after remap
+     ! in eulerian rsplit=0 case, also do this just to keep dp3d /ps consistent
+     elem(ie)%state%dp3d(:,:,:,np1)=dp(:,:,:)
+
+  enddo
+  call t_stopf('vertical_remap_hcoord')
+end subroutine vertical_remap_hcoord
+
+end module

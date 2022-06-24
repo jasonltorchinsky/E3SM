@@ -149,13 +149,17 @@ CONTAINS
     if (zcoords .eq. 1) then
 
        height = z
- 
-       if (height > ztrop) then
-          p = ptrop*exp(-(g*(height-ztrop))/(Rd*Ttrop))
-       else
+!      HOMME's height coordinate model level initialization requires that
+!      the z->p (zcoords==1) be the inverse of p->z (zcoords==0)
+!      so for HOMME we modify the zcoords==1 code to be the inverse of the
+!      zcoords==0 code:
+
+!      if (height > ztrop) then
+!         p = ptrop*exp(-(g*(height-ztrop))/(Rd*Ttrop))
+!      else          
           p = (p00-dp*exp(-(gr/rp)**exppr)*exp(-(height/zp)**exppz)) &
-              * ((T0-gamma*height)/T0)**(1/exponent)
-       end if
+               * ((T0-gamma*height)/T0)**(1/exponent)
+!       end if
  
     else
 

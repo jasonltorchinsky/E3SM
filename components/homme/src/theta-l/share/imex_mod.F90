@@ -13,7 +13,7 @@ module imex_mod
   use physical_constants, only: g, kappa
   use eos,                only: pnh_and_exner_from_eos, pnh_and_exner_from_eos2, phi_from_eos
   use element_state,      only: max_itercnt, max_deltaerr, max_reserr
-  use control_mod,        only: theta_hydrostatic_mode, qsplit
+  use control_mod,        only: theta_hydrostatic_mode, qsplit, hcoord, rsplit
   use perf_mod,           only: t_startf, t_stopf
 #ifdef HOMMEXX_BFB_TESTING
   use iso_c_binding,      only: c_loc
@@ -137,6 +137,8 @@ contains
     verbosity = 1
     if (present(verbosity_in)) verbosity = verbosity_in
 
+    if (hcoord==1 .and. rsplit==0) stop 'ERROR: IMEX with hcoord=1 and rsplit=0 not coded'
+
     call t_startf('compute_stage_value_dirk')
 
     if (theta_hydrostatic_mode) then
@@ -157,6 +159,7 @@ contains
     deltatol=1.0e-6_real_kind ! In BFB testing we can't converge due to calls of zeroulp
 #else
     deltatol=1.0e-11_real_kind  ! exit if newton increment < deltatol
+    if (hcoord==1) deltatol=5.0e-11_real_kind      ! needed for dcmip2012_test2
 #endif
 
     !restol=1.0e-13_real_kind    ! exit if residual < restol  
@@ -415,9 +418,14 @@ contains
        k  = 1 ! Jacobian row 1
        b  = a/dp3d(:,:,k)
        ck = pnh(:,:,k)/dphi(:,:,k)
-       JacU(:,:,k) = 2*b*ck
-       JacD(:,:,k) = 1 - JacU(:,:,k)
        ckm1 = ck
+       if (hcoord == 1) then ! Geometric height coordinate boundary condition
+          JacU(:,:,k) = 0
+          JacD(:,:,k) = 1
+       else ! Pressure coordinate boundary condition
+          JacU(:,:,k) = 2*b*ck
+          JacD(:,:,k) = 1 - JacU(:,:,k)
+       end if
        do k = 2,nlev-1 ! Jacobian row k
           b  = 2*a/(dp3d(:,:,k-1) + dp3d(:,:,k))
           ck = pnh(:,:,k)/dphi(:,:,k)
