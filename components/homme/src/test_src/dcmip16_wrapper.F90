@@ -240,7 +240,7 @@ subroutine dcmip2016_test2(elem,hybrid,hvcoord,nets,nete)
         ! get surface pressure ps(i,j) at lat, lon, z=0, ignore all other output
         lon = elem(ie)%spherep(i,j)%lon
         lat = elem(ie)%spherep(i,j)%lat
-        zloc(i,j,k)=0; call tropical_cyclone_test(lon,lat,p_i(i,j,k),zloc(i,j,k),1,u(i,j,1),&
+        zloc=0; call tropical_cyclone_test(lon,lat,p_i(i,j,k),zloc,1,u(i,j,1),&
              v(i,j,1),T(i,j,1),thetav,phis(i,j),ps(i,j),rho(i,j,k),q(1))
 
         ! get hydrostatic pressure at level k

@@ -28,6 +28,7 @@
   dcmip16_prec_type = 1                         ! 0 = Kessler,   1 = Reed-Jablonowski
   dcmip16_pbl_type  = 0                         ! 0 = Basic,     1 = Bryan [Not Functioning]
   dcmip16_phys_type = 1                         ! 0 = Isochoric, 1 = Isobaric 
+  hcoord            = 0                         ! 0 = Pressure,  1 = Geometric Height
 /
 
 &vert_nl

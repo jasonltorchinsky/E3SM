@@ -442,24 +442,46 @@ subroutine dcmip2012_test2_x(elem,hybrid,hvcoord,nets,nete,shear)
 
   ! set initial conditions
   do ie = nets,nete; 
-     do k=1,nlev; do j=1,np; do i=1,np
-        call get_coordinates(lat,lon,hyam,hybm, i,j,k,elem(ie),hvcoord)
-        call test2_schaer_mountain(lon,lat,p,z,zcoords,use_eta,hyam,hybm,shear,u,v,w,T,phis,ps,rho,q(1))
-        dp = pressure_thickness(ps,k,hvcoord)
-        ! original
-        !    call set_state(u,v,w,T,ps,phis,p,dp,zm(k),g, i,j,k,elem(ie),1,nt)
-        ! This test obtains analytical height and returns it, so, we use it for \phi ...
-        call set_state(u,v,w,T,ps,phis,p,dp,z,g, i,j,k,elem(ie),1,nt)
-        call set_tracers(q,qsize,dp,i,j,k,lat,lon,elem(ie))
-        ! ... or we can use discrete hydro state to init \phi. 
-        
-     enddo; enddo; enddo; 
-     do k=1,nlevp; do j=1,np; do i=1,np
-        call get_coordinates(lat,lon,hyai,hybi, i,j,k,elem(ie),hvcoord)
-        call test2_schaer_mountain(lon,lat,p,z,zcoords,use_eta,hyai,hybi,shear,u,v,w,T,phis,ps,rho,q(1))
-        call set_state_i(u,v,w,T,ps,phis,p,z,g, i,j,k,elem(ie),1,nt)
-     enddo; enddo; enddo; 
-     call tests_finalize(elem(ie),hvcoord)
+     do j=1,np; do i=1,np
+        call get_coordinates(lat,lon,hyai,hybi,i,j,1,elem(ie),hvcoord)  ! get lat/lon
+
+        ! compute terrain following zi,zm (only needed for hcoord=1)
+        z=ztop
+        call test2_schaer_mountain(lon,lat,p,z,0,use_eta,hyam,hybm,shear,u,v,w,T,phis,ps,rho,q(1))
+        ! terrain following z coord based on hyai/hybi is defined using ps_ref, not ps,
+        ! with ps_ref defined using test case analytic p/z relation
+        ! this gives zi(nlevp)=zs and zi(1)=constant
+        ps_ref=p0*exp(-(phis/g)/H)
+        do k=1,nlevp
+           p=hvcoord%hyai(k)*p0 + hvcoord%hybi(k)*ps_ref 
+           zi(k)=-H*log(p/p0)
+        enddo
+        do k=1,nlev
+           zm(k)=(zi(k)+zi(k+1))/2
+        enddo
+
+        do k=1,nlev
+           call get_coordinates(lat,lon,hyam,hybm, i,j,k,elem(ie),hvcoord)
+           call test2_schaer_mountain(lon,lat,p,zm(k),hcoord,use_eta,hyam,hybm,shear,u,v,w,T,phis,ps,rho,q(1))
+           if (hcoord == 0) then
+              dp = pressure_thickness(ps,k,hvcoord)
+           else
+              dp = -rho*g*(zi(k+1)-zi(k))
+           end if
+           call set_state(u,v,w,T,ps,phis,p,dp,zm(k),g, i,j,k,elem(ie),1,nt)
+           call set_tracers(q,qsize,dp,i,j,k,lat,lon,elem(ie))
+        enddo
+
+        do k=1,nlevp
+           call get_coordinates_i(lat,lon,hyai,hybi, i,j,k,elem(ie),hvcoord)
+           call test2_schaer_mountain(lon,lat,p,zi(k),hcoord,use_eta,hyai,hybi,shear,u,v,w,T,phis,ps,rho,q(1))
+           call set_state_i(u,v,w,T,ps,phis,p,zi(k),g, i,j,k,elem(ie),1,nt)
+        enddo; 
+
+
+     enddo; enddo; 
+     ! adjust phi (pressure coord) or T (height coord)  to be in discrete hydrostatic balance
+     if (hcoord==0) call tests_finalize(elem(ie),hvcoord)
   enddo
 
   ! store initial velocity fields for use in sponge layer

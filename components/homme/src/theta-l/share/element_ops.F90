@@ -712,7 +712,6 @@ recursive subroutine get_field(elem,name,field,hvcoord,nt,ntQ)
   tl=1
 
   if (hcoord==0) then
-       elem%state%dp3d(:,:,:,tl),elem%state%phinh_i(:,:,:,tl))
      ! given dp3d and vtheta_dp, set phinh_i based on EOS
      call phi_from_eos(hvcoord,elem%state%phis,elem%state%vtheta_dp(:,:,:,tl),&
           elem%state%dp3d(:,:,:,tl),elem%state%phinh_i(:,:,:,tl))
