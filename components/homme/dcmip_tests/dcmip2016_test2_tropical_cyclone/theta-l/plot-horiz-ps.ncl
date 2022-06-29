@@ -76,19 +76,29 @@ res@cnMaxLevelValF       =  101500+(clev+.5)*dx
 
 res@tiMainString="PS t="+f->time(t0)
 ps = f->ps(t0,:,:)
-print("ps min/max = "+min(ps)+","+max(ps))
+; hack since mean ps is off for hcoord=1 case:
+ps_offset = 101500-max(ps)
+ps = ps + ps_offset
+print("applying ps_offset="+ps_offset)
+print(t0+" ps min/max = "+min(ps)+","+max(ps))
 contour(0) = gsn_csm_contour_map(wks,ps(:,:),res)  ; create the plot
 
 res@tiMainString="PS t="+f->time(t8)
 ps = f->ps(t8,:,:)
+ps = ps + ps_offset
+print(t8+" ps min/max = "+min(ps)+","+max(ps))
 contour(1) = gsn_csm_contour_map(wks,ps(:,:),res)  ; create the plot
 
 res@tiMainString="PS t="+f->time(t9)
 ps = f->ps(t9,:,:)
+ps = ps + ps_offset
+print(t9+" ps min/max = "+min(ps)+","+max(ps))
 contour(2) = gsn_csm_contour_map(wks,ps(:,:),res)  ; create the plot
 
 res@tiMainString="PS t="+f->time(t10)
 ps = f->ps(t10,:,:)
+ps = ps + ps_offset
+print(t10+" ps min/max = "+min(ps)+","+max(ps))
 contour(3) = gsn_csm_contour_map(wks,ps(:,:),res)  ; create the plot
 
 resP                     = True                ; modify the panel plot

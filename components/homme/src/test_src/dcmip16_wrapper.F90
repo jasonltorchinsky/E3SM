@@ -703,7 +703,7 @@ subroutine dcmip2016_test1_pg_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl
   integer :: i,j,k,ie,qi
   real(rl), dimension(np,np,nlev) :: u,v,w,T,p,dp,rho,rho_dry,z,exner_kess,theta_kess
   real(rl), dimension(np,np,nlev) :: rho_new,p_pk
-  real(rl), dimension(nlev)       :: u_c,v_c,p_c,qv_c,qc_c,qr_c,rho_c,z_c, th_c, T_c
+  real(rl), dimension(nlev)       :: u_c,v_c,p_c,qv_c,qc_c,qr_c,rho_c,z_c, th_c
   real(rl) :: max_w, max_precl, min_ps
   real(rl) :: lat, lon, dz_top(np,np),zi(np,np,nlevp),zi_c(nlevp), ps(np,np), &
        wrk(np,np), rd, wrk3(np,np,nlev), wrk4(np,np,nlev,2), wf(np*np,1)
@@ -802,7 +802,6 @@ subroutine dcmip2016_test1_pg_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl
            zi_c = zi_fv(i,j,nlevp:1:-1)
            th_c = theta_kess_fv(i,j,nlev:1:-1)
            
-           T_c = T_fv(i,j,nlev:1:-1)
            ! Need: specific humidity, pressure at model interfaces, pressure layer thickness,
            !       reciprocal of pressure layer thickness,
 
@@ -837,7 +836,7 @@ subroutine dcmip2016_test1_pg_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl
      Q_fv(:nf,:nf,:,5) = Q_fv(:nf,:nf,:,5) + dt*ddt_cl2(:nf,:nf,:)
 
  
-     T_fv(:nf,:nf,:) = exner_kess_fv * theta_kess_fv
+     T_fv(:nf,:nf,:) = exner_kess_fv(:nf,:nf,:) * theta_kess_fv(:nf,:nf,:)
 
      ! These gfr calls are special to this routine, to handle
      ! DCMIP-specific precl.
@@ -930,7 +929,7 @@ subroutine dcmip2016_test2_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl, t
   integer,            intent(in)            :: test                     ! dcmip2016 test number
 
   integer :: i,j,k,ie                                                     ! loop indices
-  real(rl), dimension(np,np,nlev) :: u,v,w,T,exner_kess,theta_kess,p,dp,rho,z,qv,qc,qr,delta_T
+  real(rl), dimension(np,np,nlev) :: u,v,w,T,exner_kess,theta_kess,p,dp,rho,z,qv,qc,qr
   real(rl), dimension(np,np,nlev) :: u0,v0,T0,qv0,qc0,qr0
   real(rl), dimension(np,np,nlev) :: rho_dry,rho_new,Rstar,p_pk
   real(rl), dimension(np,np)      :: delta_ps(np,np)
@@ -1064,7 +1063,7 @@ subroutine dcmip2016_test3_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl)
 
   integer :: i,j,k,ie                                                     ! loop indices
   real(rl):: lat
-  real(rl), dimension(np,np,nlev) :: u,v,w,T,theta_kess,exner_kess,p,dp,rho,z,qv,qc,qr,dph
+  real(rl), dimension(np,np,nlev) :: u,v,w,T,theta_kess,exner_kess,p,dp,rho,z,qv,qc,qr
   real(rl), dimension(np,np,nlev) :: T0,qv0,qc0,qr0
   real(rl), dimension(np,np,nlev) :: rho_dry,rho_new,Rstar,p_pk
   real(rl), dimension(np,np,nlev) :: theta_inv,qv_inv,qc_inv,qr_inv,rho_inv,exner_inv,z_inv ! inverted columns
