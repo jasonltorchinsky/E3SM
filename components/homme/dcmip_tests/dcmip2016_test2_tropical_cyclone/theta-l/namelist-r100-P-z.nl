@@ -27,8 +27,8 @@
   moisture          = 'wet'
   dcmip16_prec_type = 1                         ! 0=kessler,     1= reed-jablonowski
   dcmip16_pbl_type  = 0                         ! 0=basic pbl,   1= bryan pbl
-  dcmip16_phys_type = 0                         ! 0 = isochoric, 1 = isobaric
-  hcoord            = 0
+  dcmip16_phys_type = 1                         ! 0 = isochoric, 1 = isobaric
+  hcoord            = 1
 /
 &vert_nl
   vfile_mid     = "../vcoord/camm-30.ascii"

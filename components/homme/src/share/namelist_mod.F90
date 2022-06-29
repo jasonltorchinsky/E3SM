@@ -68,7 +68,8 @@ use physical_constants, only : Sx, Sy, Lx, Ly, dx, dy, dx_ref, dy_ref
     dcmip16_mu_s,   &
     dcmip16_mu_q,   &
     dcmip16_prec_type, &
-    dcmip16_pbl_type,&
+    dcmip16_pbl_type, &
+    dcmip16_phys_type, &
     interp_lon0,    &
     hypervis_scaling,   &  ! use tensor HV instead of scalar coefficient
     disable_diagnostics, & ! use to disable diagnostics for timing reasons
@@ -285,8 +286,9 @@ use physical_constants, only : Sx, Sy, Lx, Ly, dx, dy, dx_ref, dy_ref
       dcmip16_mu,     &
       dcmip16_mu_s,   &
       dcmip16_mu_q,   &
-      dcmip16_prec_type,&
-      dcmip16_pbl_type,&
+      dcmip16_prec_type, &
+      dcmip16_pbl_type, &
+      dcmip16_phys_type, &
       hypervis_order,    &
       hypervis_subcycle, &
       hypervis_subcycle_tom, &
@@ -791,6 +793,7 @@ use physical_constants, only : Sx, Sy, Lx, Ly, dx, dy, dx_ref, dy_ref
 
     call MPI_bcast(dcmip16_prec_type, 1, MPIinteger_t, par%root,par%comm,ierr)
     call MPI_bcast(dcmip16_pbl_type , 1, MPIinteger_t, par%root,par%comm,ierr)
+    call MPI_bcast(dcmip16_phys_type, 1, MPIinteger_t, par%root,par%comm,ierr)
 
     call MPI_bcast(disable_diagnostics,1,MPIlogical_t,par%root,par%comm,ierr)
     call MPI_bcast(hypervis_order,1,MPIinteger_t   ,par%root,par%comm,ierr)
