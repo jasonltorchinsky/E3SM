@@ -1,8 +1,8 @@
-!-----------------------------------------------------------------------
+!-----------------------------------------------------------------------------
 !
-!  Version:  1.1
+!  Version:  1.2
 !
-!  Date:  June 1st, 2016
+!  Date:  Summer 2022
 !
 !  Change log:
 !
@@ -12,23 +12,23 @@
 !
 !  Input variables:
 !     test      (IN) DCMIP2016 test id (1,2,3)
-!     u      (INOUT) zonal velocity on model levels (m/s)
+!     u      (INOUT) Zonal wind velocity on model levels (m/s)
 !     v      (INOUT) meridional velocity on model levels (m/s)
-!     p         (IN) total pressure on model levels (Pa)
-!     qv     (INOUT) dry water vapor mixing ratio on model levels (kg/kg)
-!     qc     (INOUT) dry cloud water mixing ratio on model levels (kg/kg)
-!     qr     (INOUT) dry rain water mixing ratio on model levels (kg/kg)
-!     rho       (IN) dry air density on model levels (kg/m^3)
-!     dt        (IN) time step (s)
-!     z      (INOUT) heights of model levels in the grid column (m)
-!     zi     (INOUT) heights of model interfaces levels in the grid column (m)
-!     lat       (IN) latitude of column
-!     nz        (IN) number of levels in the column
-!     precl     (IN) large-scale precip rate (m/s)
-!     pbl_type  (IN) type of planetary boundary layer to use (0,1)
+!     p         (IN) Total pressure on model levels (Pa)
+!     qv     (INOUT) Dry water vapor mixing ratio on model levels (kg/kg)
+!     qc     (INOUT) Dry cloud water mixing ratio on model levels (kg/kg)
+!     qr     (INOUT) Dry rain water mixing ratio on model levels (kg/kg)
+!     rho       (IN) Dry air density on model levels (kg/m^3)
+!     dt        (IN) Time step size (s)
+!     z      (INOUT) Heights of model levels in the grid column (m)
+!     zi     (INOUT) Heights of model interfaces levels in the grid column (m)
+!     lat       (IN) Latitude of column
+!     nz        (IN) Number of levels in the column
+!     precl     (IN) Large-scale precip rate (m/s)
+!     pbl_type  (IN) Type of planetary boundary layer to use: 0, 1
 !                    0 = Default Reed-Jablonowski boundary layer
 !                    1 = Modified Bryan boundary layer
-!     prec_type (IN) type of precipitation/microphysics to use (0,1)
+!     prec_type (IN) Type of precipitation/microphysics to use: 0, 1
 !                    0 = Default Kessler physics routines
 !                    1 = Reed-Jablonowski microphysics
 !
@@ -44,20 +44,27 @@
 !           (National Center for Atmospheric Research)
 !
 !  Modified by: Jason Torchinsky
+!               University of Wisconsin-Madison
+!               Email: jason.torchinsky@wisc.edu
 !
-!  Reference:
+!  References:
 !
-!    Klemp, J. B., W. C. Skamarock, W. C., and S.-H. Park, 2015:
-!    Idealized Global Nonhydrostatic Atmospheric Test Cases on a Reduced
-!    Radius Sphere. Journal of Advances in Modeling Earth Systems. 
-!    doi:10.1002/2015MS000435
+!    Klemp et. al., Idealized global nonhydrostatic atmospheric test
+!    cases on a reduced-radius sphere. (2015) J. Adv. Model. Earth Syst.,
+!    doi: 10.1002/2015MS000435
 !
-!=======================================================================
+!    Reed et. al., Idealized tropical cyclone simulations of intermediate
+!    complexity: A test case for AGCMs. (2012) J. Adv. Model. Earth Syst.,
+!    doi: 10.1029/2011MS000099
+!
+!=============================================================================
 
 SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
-                               dt, z, zi, lat, nz, precl, pbl_type, prec_type)
+                               dt, z, zi, lat, nz, precl, &
+                               pbl_type, prec_type)
 
-  use physical_constants,   only:  g, Rgas, Cp, Rwater_vapor, rearth0, omega0,dd_pi
+  use physical_constants,   only:  DD_PI, rearth0, g, omega0, &
+                                   Rgas, Cp, Rwater_vapor, Rd_on_Rv
 
   IMPLICIT NONE
 
@@ -106,28 +113,16 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
   !------------------------------------------------
   ! Physical Constants - MAY BE MODEL DEPENDENT
   !------------------------------------------------
-  !REAL(8), PARAMETER ::      &
-  !  one      = 1.d0,         & ! One
-  !  gravit  = 9.80616d0,     & ! Gravity (m/s^2)
-  !  rair    = 287.d0,        & ! Gas constant for dry air (J/kg/K)
-  !  cpair   = 1004.5d0,      & ! Specific heat of dry air (J/kg/K)
-  !  latvap  = 2.5d6,         & ! Latent heat of vaporization (J/kg)
-  !  rh2o    = 461.5d0,       & ! Gas constant for water vapor (J/kg/K)
-  !  epsilo  = rair/rh2o,     & ! Ratio of gas constants for dry air to vapor
-  !  zvir    = (rh2o/rair) - 1.d0, & ! Constant for virtual temp. calc. (~0.608)
-  !  a       = 6371220.0,     & ! Reference Earth's Radius (m)
-  !  omega   = 7.29212d-5,    & ! Reference rotation rate of the Earth (s^-1)
-  !  pi      = 4.d0*atan(1.d0)  ! Pi
-
-  REAL(8), PARAMETER ::         &
+  REAL(8), PARAMETER ::       &
     one     = 1.d0,           & ! One
     gravit  = g,              & ! Gravity (m/s^2)
     rair    = Rgas,           & ! Gas constant for dry air (J/kg/K)
     cpair   = cp,             & ! Specific heat of dry air (J/kg/K)
     latvap  = 2.5d6,          & ! Latent heat of vaporization (J/kg)
     rh2o    = Rwater_vapor,   & ! Gas constant for water vapor (J/kg/K)
-    epsilo  = rair/rh2o,      & ! Ratio of gas constants for dry air to vapor
-    zvir    = (rh2o/rair) - 1.d0, & ! Constant for virtual temp. calc. (~0.608)
+    epsilo  = Rd_on_Rv,       & ! Ratio of gas constants for dry air to vapor
+    inv_eps = 1.d0 / epsilo,  & ! Ratio of gas constants for vapor to dry air
+    zvir    = inv_eps - 1.d0, & ! Constant for virtual temp. calc. (~0.608)
     a       = rearth0,        & ! Reference Earth's Radius (m)
     omega   = omega0,         & ! Reference rotation rate of the Earth (s^-1)
     pi      = DD_PI             !4.d0*atan(1.d0)  ! Pi
@@ -135,27 +130,27 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
   !------------------------------------------------
   ! Local Constants for Simple Physics
   !------------------------------------------------
-  REAL(8), PARAMETER ::      &
-    C        = 0.0011d0,     & ! From Simth and Vogl 2008
-    SST_TC   = 302.15d0,     & ! Constant Value for SST
-    T0       = 273.16d0,     & ! Control temp for calculation of qsat
-    e0       = 610.78d0,     & ! Saturation vapor pressure at T0
-    rhow     = 1000.0d0,     & ! Density of Liquid Water 
-    Cd0      = 0.0007d0,     & ! Constant for Cd calc. Simth and Vogl 2008
-    Cd1      = 0.000065d0,   & ! Constant for Cd calc. Simth and Vogl 2008
-    Cm       = 0.002d0,      & ! Constant for Cd calc. Simth and Vogl 2008
-    v20      = 20.0d0,       & ! Thresh. wind spd. for Cd Smith and Vogl 2008
-    p0       = 100000.0d0,   & ! Constant for potential temp calculation
-    pbltop   = 85000.d0,     & ! Top of boundary layer in p
-    zpbltop  = 1000.d0,      & ! Top of boundary layer in z
-    pblconst = 10000.d0,     & ! Constant for the decay of diffusivity
-    T00      = 288.0d0,      & ! Horizontal mean T at surf. for moist baro test
-    u0       = 35.0d0,       & ! Zonal wind constant for moist baro test
+  REAL(8), PARAMETER ::     &
+    C        = 0.0011d0,    & ! From Simth and Vogl 2008
+    SST_TC   = 302.15d0,    & ! Constant Value for SST
+    T0       = 273.16d0,    & ! Control temp for calculation of qsat (K)
+    e0       = 610.78d0,    & ! Saturation vapor pressure at T0 (Pa)
+    rhow     = 1000.0d0,    & ! Density of Liquid Water  (kg/m^3)
+    Cd0      = 0.0007d0,    & ! Constant for Cd calc. Simth and Vogl 2008
+    Cd1      = 0.000065d0,  & ! Constant for Cd calc. Simth and Vogl 2008
+    Cm       = 0.002d0,     & ! Constant for Cd calc. Simth and Vogl 2008
+    v20      = 20.0d0,      & ! Thresh. wind spd. for Cd Smith and Vogl 2008
+    p0       = 100000.0d0,  & ! Constant for potential temp calculation
+    pbltop   = 85000.d0,    & ! Top of boundary layer in p
+    zpbltop  = 1000.d0,     & ! Top of boundary layer in z
+    pblconst = 10000.d0,    & ! Constant for the decay of diffusivity
+    T00      = 288.0d0,     & ! Horizontal mean T at surf. for moist baro test
+    u0       = 35.0d0,      & ! Zonal wind constant for moist baro test
     latw     = 2.0d0*pi/9.0d0, & ! Halfwidth for  for baro test
-    eta0     = 0.252d0,      & ! Center of jets (hybrid) for baro test
+    eta0     = 0.252d0,     & ! Center of jets (hybrid) for baro test
     etav     = (1.d0-eta0)*0.5d0*pi, & ! Auxiliary variable for baro test
-    q0       = 0.021d0,      & ! Maximum specific humidity for baro test
-    kappa    = 0.4d0           ! von Karman constant
+    q0       = 0.021d0,     & ! Maximum specific humidity for baro test
+    kappa    = 0.4d0          ! von Karman constant
 
   !------------------------------------------------
   ! Variables used in calculation
@@ -190,10 +185,9 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
 
   ! Variables defined on model levels
   REAL(8), DIMENSION(nz) ::   &
-    rhom,                     & ! Moist density on model levels
+    rhom,                     & ! Moist density on model levels (kg/m^3)
     qsv,                      & ! Specific humidity (kg/kg)
     t,                        & ! Temperature (K)
-!    theta,                    & ! Potential temperature on model levels
     exner,                    & ! Exner function (p/p0)**(R/cp)
     CEm,                      & ! Matrix coefficients for PBL scheme
     CEE,                      & ! Matrix coefficients for PBL scheme
@@ -209,7 +203,6 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
     Ke                          ! Eddy diffusivity for boundary layer
 
   if (prec_type < 0) return
-
 
   !------------------------------------------------
   ! Store altitude of lowest model level
@@ -258,10 +251,10 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
     rhom(k) = rho(k) * (1.0 + qv(k))
     qsv(k) = qv(k) * rho(k) / rhom(k)
 
-   !t(k) = p(k) / (rhom(k) * rair * (one + zvir * qv(k)))
     exner(k) = (p(k) / p0)**(rair/cpair)
     t(k) = theta(k)*exner(k)
-    dph(k) = - gravit * rhom(k) * (zi(k + 1) - zi(k)) ! NOTE: Is negative, as ph decreases going up.
+    dph(k) = - gravit * rhom(k) * (zi(k + 1) - zi(k)) 
+             ! NOTE: Is negative, as ph decreases going up.
   enddo
 
   !--------------------------------------------------------------
@@ -291,8 +284,8 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
         qsv(k) = qsv(k) - deltaqsv
         precl = precl + deltaqsv * rhom(k) * dz / (dt * rhow)
 
-        qv(k) = qsv(k) / (1.0 - qsv(k))
-        rhom(k) = p(k) / (rair * t(k) * (one + zvir * qv(k)))
+        qv(k) = qsv(k) * rhom(k) / rho(k)
+        rhom(k) = p(k) / (rair * t(k) * (one + zvir * qsv(k)))
         theta(k) = t(k) / exner(k)
       endif
     enddo
@@ -318,7 +311,7 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
     do k = 1, nz
       qsv(k) = qv(k) / (one + qv(k))
       t(k) = theta(k) * exner(k)
-      rhom(k) = p(k) / (rair * t(k) * (one + zvir * qv(k)))
+      rhom(k) = p(k) / (rair * t(k) * (one + zvir * qsv(k)))
     enddo
 
   else
@@ -406,7 +399,8 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
   t(1) = (t(1) + C * wind * Tsurf * dt / za) / (one + C * wind * dt / za)
 
   qv(1) = qsv(1) / (1.0 - qsv(1))
-  rhom(1) = p(1) / (rair * t(1) * (one + zvir * qv(1)))
+  rhom(1) = p(1) / (rair * t(1) * (one + zvir * qsv(1)))
+
 
   do k = 1, nz
    zi(k+1) = zi(k) - dph(k) / (gravit * rhom(k))
@@ -478,7 +472,7 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
   do k = 1, nz
     qv(k) = qsv(k) / (one - qsv(k))
     t(k) =  theta(k) * (p(k) / p0)**(rair/cpair)
-    rhom(k) = p(k) / (rair * t(k) * (one + zvir * qv(k))) 
+    rhom(k) = p(k) / (rair * t(k) * (one + zvir * qsv(k)))
 
     zi(k+1) = zi(k) - dph(k) / (gravit * rhom(k))
     z(k) = (zi(k+1) + zi(k)) / 2.d0

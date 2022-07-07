@@ -12,7 +12,7 @@
   statefreq         = 72                        ! number of steps between screen dumps
   restartfreq       = -1                        ! don't write restart files if < 0
   runtype           = 0                         ! 0 => new run
-  tstep             = 300                       ! largest timestep in seconds
+  tstep             = 200                       ! largest timestep in seconds
   integration       = 'explicit'                ! explicit time integration
   tstep_type        = 9
   rsplit            = 2
