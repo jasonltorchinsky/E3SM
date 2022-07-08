@@ -27,7 +27,7 @@
   moisture          = 'wet'
   dcmip16_prec_type = 0                         ! 0 = Kessler,   1 = Reed-Jablonowski
   dcmip16_pbl_type  = 0                         ! 0 = Basic,     1 = Bryan [Not Functioning]
-  hcoord            = 0                         ! 0 = Pressure,  1 = Geometric Height
+  hcoord            = 1                         ! 0 = Pressure,  1 = Geometric Height
 /
 
 &vert_nl
