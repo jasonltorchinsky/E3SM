@@ -14,7 +14,7 @@
 #SBATCH --mail-user=jltorch@sandia.gov
 #SBATCH --mail-type=all
 
-#SBATCH --time=0-00:30:00
+#SBATCH --time=0-04:00:00
 
 module load ncl
 
@@ -61,7 +61,11 @@ ncl plot_supercell_prect.ncl
 
 #prefix=r400             ; run $(($NCPU>384?384:NCPU))
 #prefix=r200             ; run $NCPU
-prefix=r100             ; run $NCPU
+prefix=r100-K-P-p; run $NCPU
+prefix=r100-K-P-z; run $NCPU
+prefix=r100-K-V-p; run $NCPU
+prefix=r100-K-V-z; run $NCPU
+
 #prefix=r50              ; run $NCPU
 
 #prefix=explicit-r100    ; run $NCPU

@@ -969,10 +969,10 @@ subroutine dcmip2016_test2_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl, t
     where(qv<0); qv=0; endwhere
     where(qc<0); qc=0; endwhere
     where(qr<0); qr=0; endwhere
+    
 
-    rho_dry = (1-qv)*rho  ! convert to dry density using wet mixing ratio
-
-    ! convert to dry mixing ratios
+    ! Convert wet quantities to dry quantities
+    rho_dry = (1-qv)*rho
     qv  = qv*rho/rho_dry
     qc  = qc*rho/rho_dry
     qr  = qr*rho/rho_dry
