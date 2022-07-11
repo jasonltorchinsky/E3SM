@@ -45,8 +45,12 @@ ncl plot-horiz-ps.ncl
 }
 
 
-prefix=r100-P-p;  run
-prefix=r100-V-p;  run
-prefix=r100-P-z;  run
-prefix=r100-V-z;  run
+prefix=r100-K-P-p;  run
+prefix=r100-K-V-p;  run
+prefix=r100-K-P-z;  run
+prefix=r100-K-V-z;  run
+prefix=r100-RJ-P-p; run
+prefix=r100-RJ-V-p; run
+prefix=r100-RJ-P-z; run
+prefix=r100-RJ-V-z; run
 

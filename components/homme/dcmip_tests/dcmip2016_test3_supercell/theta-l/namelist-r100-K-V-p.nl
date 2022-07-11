@@ -1,12 +1,12 @@
 !
-! Theta: Namelist for DCMIP 2016 Test 3 - Supercell Storm (Small Planet X=2)
+! Theta: Namelist for DCMIP 2016 Test 3 - Supercell Storm (Small Planet X=120)
 !_______________________________________________________________________
 &ctl_nl
   nthreads          = 1
   partmethod        = 4                         ! Mesh Parition Method: 4 = Space Filling Curve
   topology          = "cube"                    ! Mesh Type: Cubed Sphere
   test_case         = "dcmip2016_test3"         ! Test Identifier
-  ne                = 1800                      ! Number of Elements per Cube Face
+  ne                = 30                        ! Number of Elements per Cube Face
   qsize             = 3                         ! Number of Tracer Fields
   nmax              = 3600                      ! 7200s(120min)/tstep
   statefreq         = 180                       ! Number of Steps Between Screen Dumps
@@ -28,14 +28,15 @@
   dcmip16_mu_s      = 1500.0d0
   hypervis_order    = 2                         ! 2 = Hyperviscosity
   hypervis_subcycle = 1                         ! 1 = No Hyperviscosity Subcycling
-  rearth            = 3.188e6                   ! 6.376E6 / 2
+  rearth            = 53133                     ! 6.376E6  / 120
   omega             = 0
   se_ftype          = 0
   moisture          = 'wet'
   theta_hydrostatic_mode = .false.
   dcmip16_prec_type = 0                         ! 0 = Kessler
   dcmip16_pbl_type  = 0                         ! 0 = Basic
-  dcmip16_phys_type = 1                         ! 0 = Isochoric, 1 = Isobaric 
+  dcmip16_phys_type = 0                         ! 0 = Isochoric, 1 = Isobaric 
+  hcoord            = 0                         ! 0 = Pressure,  1 = Geometric Height
 /
 
 &vert_nl
@@ -44,16 +45,15 @@
 &analysis_nl
   output_dir        = "./movies/"               ! Destination directory for NetCDF file
   output_timeunits  = 3                         ! 0 = Timesteps, 1 = Days, 2 = Hours, 3 = Seconds
-  output_frequency  = 1800                      ! Every N time units
-  output_varnames1  = 'ps','geo','w','Q2','Q3'   ! Variables to Write to File
+  output_frequency  = 600                       ! Every N time units
+  output_varnames1  ='T','p','ps','pnh','geo','u','v','w','Th','Q','Q2','Q3','precl'   ! variables to write to file
 !  interp_nlon       = 360
 !  interp_nlat       = 181
   interp_gridtype   = 1
   interp_type       = 1                         ! 0 = Native grid, 1 = Bilinear
   interp_lon0       = -180.0                    ! Shift longitude range to [-180, +180)
-  output_type       = 'pnetcdf64'                   ! NetCDF or PNetCDF
-!  num_io_procs      = 16         
-  io_stride         = 64
+  output_type       ='netcdf'                   ! NetCDF or PNetCDF
+  num_io_procs      = 16         
 /
 &prof_inparm
   profile_outpe_num   = 100
