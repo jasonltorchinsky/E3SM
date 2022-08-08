@@ -6,9 +6,9 @@
 !
 !  Change log:
 !
-!  SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, qv, qc, qr, rho,
-!                                 dt, z, zi, lat, nz, precl, pbl_type, 
-!                                 prec_type)
+!  SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, qv, qc, qr, rho,
+!                               dt, z, zi, lat, nz, precl, pbl_type, 
+!                               prec_type)
 !
 !  Input variables:
 !     test      (IN) DCMIP2016 test id (1,2,3)
@@ -59,9 +59,9 @@
 !
 !=============================================================================
 
-SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
-                               dt, z, zi, lat, nz, precl, &
-                               pbl_type, prec_type)
+SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, theta, qv, qc, qr, rho, &
+                             dt, z, zi, lat, nz, precl, &
+                             pbl_type, prec_type, phys_type)
 
   use physical_constants,   only:  DD_PI, rearth0, g, omega0, &
                                    Rgas, Cp, Rwater_vapor, Rd_on_Rv
@@ -108,7 +108,10 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
 
   INTEGER, INTENT(IN) :: &
             pbl_type,    & ! Type of planetary boundary layer to use
-            prec_type      ! Type of precipitation to use
+            prec_type,   & ! Type of precipitation to use
+            phys_type      ! Type of physics to use
+                           ! 0 - Isobaric, for pressure coordinate
+                           ! 1 - Isochoric, for height coordinate
 
   !------------------------------------------------
   ! Physical Constants - MAY BE MODEL DEPENDENT
@@ -131,14 +134,15 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
   ! Local Constants for Simple Physics
   !------------------------------------------------
   REAL(8), PARAMETER ::     &
-    C        = 0.0011d0,    & ! From Simth and Vogl 2008
+!    C        = 0.0011d0,    & ! From Smith and Vogl 2008
+    C        = 0.1d0 * 0.0011d0,    & ! Trying to lessen PBL, surface flux adjustment
     SST_TC   = 302.15d0,    & ! Constant Value for SST
     T0       = 273.16d0,    & ! Control temp for calculation of qsat (K)
     e0       = 610.78d0,    & ! Saturation vapor pressure at T0 (Pa)
     rhow     = 1000.0d0,    & ! Density of Liquid Water  (kg/m^3)
-    Cd0      = 0.0007d0,    & ! Constant for Cd calc. Simth and Vogl 2008
-    Cd1      = 0.000065d0,  & ! Constant for Cd calc. Simth and Vogl 2008
-    Cm       = 0.002d0,     & ! Constant for Cd calc. Simth and Vogl 2008
+    Cd0      = 0.0007d0,    & ! Constant for Cd calc. Smith and Vogl 2008
+    Cd1      = 0.000065d0,  & ! Constant for Cd calc. Smith and Vogl 2008
+    Cm       = 0.002d0,     & ! Constant for Cd calc. Smith and Vogl 2008
     v20      = 20.0d0,      & ! Thresh. wind spd. for Cd Smith and Vogl 2008
     p0       = 100000.0d0,  & ! Constant for potential temp calculation
     pbltop   = 85000.d0,    & ! Top of boundary layer in p
@@ -188,6 +192,7 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
     rhom,                     & ! Moist density on model levels (kg/m^3)
     qsv,                      & ! Specific humidity (kg/kg)
     t,                        & ! Temperature (K)
+    deltat,                   & ! Temperature tendency (K)
     exner,                    & ! Exner function (p/p0)**(R/cp)
     CEm,                      & ! Matrix coefficients for PBL scheme
     CEE,                      & ! Matrix coefficients for PBL scheme
@@ -255,6 +260,7 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
     t(k) = theta(k)*exner(k)
     dph(k) = - gravit * rhom(k) * (zi(k + 1) - zi(k)) 
              ! NOTE: Is negative, as ph decreases going up.
+    deltat(k) = 0.d0
   enddo
 
   !--------------------------------------------------------------
@@ -280,13 +286,9 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
       if (qsv(k) > qsat) then
         deltaqsv = (qsv(k) - qsat) &
           / (one + (latvap/cpair) * epsilo * latvap * qsat / (rair*t(k)**2))
-        t(k) = t(k) + latvap / cpair * deltaqsv
+        deltat(k) = (latvap / cpair) * deltaqsv ! Temperature update is isobaric
         qsv(k) = qsv(k) - deltaqsv
         precl = precl + deltaqsv * rhom(k) * dz / (dt * rhow)
-
-        qv(k) = qsv(k) * rhom(k) / rho(k)
-        rhom(k) = p(k) / (rair * t(k) * (one + zvir * qsv(k)))
-        theta(k) = t(k) / exner(k)
       endif
     enddo
 
@@ -307,11 +309,9 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
       nz,           &
       precl)
 
-    ! Update temperature isobarically
+    ! Calculate temperature update (Kessler is isobaric)
     do k = 1, nz
-      qsv(k) = qv(k) / (one + qv(k))
-      t(k) = theta(k) * exner(k)
-      rhom(k) = p(k) / (rair * t(k) * (one + zvir * qsv(k)))
+      deltat(k) = theta(k) * exner(k) - t(k)
     enddo
 
   else
@@ -319,12 +319,49 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
     stop
   endif
 
+!  ! Convert the temperature update from the physics to isochoric
+!  ! temperature update if required.
+!  if (phys_type .eq. 0) then ! Isobaric (for pressure coordinate)
+!  
+!  elseif (phys_type .eq. 1) then ! Isochoric (for height coordinate)
+!     do k = 1, nz
+!       deltat(k) =  cp / (cp - Rgas) * deltat(k)
+!     end do 
+!  else
+!    write(*,*) 'Invalid phys_type specified in DCMIP16_WRAPPER', phys_type
+!    stop
+!  endif
+
+  ! Apply temperature update, and update other state variables
+  do k = 1, nz
+    t(k) = t(k) + deltat(k)
+    theta(k) = t(k) / exner(k)
+ enddo
+ 
+  ! Reed-Jablonowski phsyics updates moist mixing ratios
+  ! So we must update dry mixing ratios
+  if (prec_type .eq. 1) then
+    do k = 1, nz
+      if (qsv(k) .gt. qsat) then
+        rhom(k) = p(k) / (rair * t(k) * (one + zvir * qsv(k)))
+        qv(k) = qsv(k) * (rhom(k) / rho(k))
+      end if
+    end do
+  ! Kessler physics updates dry mixing ratios
+  ! So we must update moist mixing ratios
+  elseif (prec_type .eq. 0) then
+    do k = 1, nz
+      qsv(k)  = qv(k) / (one + qv(k))
+      rhom(k) = p(k) / (rair * t(k) * (one + zvir * qsv(k)))
+    end do 
+  end if
+ 
   !----------------------------------------------------
   ! Update the geometric height levels
   !----------------------------------------------------
   do k = 1, nz
-   zi(k+1) = zi(k) - dph(k) / (gravit * rhom(k))
-   z(k) = (zi(k+1) + zi(k)) / 2.d0
+    zi(k+1) = zi(k) - dph(k) / (gravit * rhom(k))
+    z(k) = (zi(k+1) + zi(k)) / 2.d0
   enddo
 
   !----------------------------------------------------
@@ -391,8 +428,6 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
   !------------------------------------------------
   ! Surface fluxes
   !------------------------------------------------
-
-
   u(1) = u(1) / (one + dt * Cd * wind / za)
   v(1) = v(1) / (one + dt * Cd * wind / za)
   qsv(1) = (qsv(1) + C * wind * qsats * dt / za) / (one + C * wind * dt / za)
@@ -480,5 +515,5 @@ SUBROUTINE DCMIP2016_PHYSICS_P(test, u, v, p, theta, qv, qc, qr, rho, &
 
   return
 
-END SUBROUTINE DCMIP2016_PHYSICS_P
+END SUBROUTINE DCMIP2016_PHYSICS
 

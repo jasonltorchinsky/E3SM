@@ -51,7 +51,7 @@
 !
 !=======================================================================
 
-SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, theta, qv, qc, qr, rho, &
+SUBROUTINE DCMIP2016_PHYSICS_Z(test, u, v, p, theta, qv, qc, qr, rho, &
                              dt, z, zi, lat, nz, precl, pbl_type, prec_type)
 
   use physical_constants,   only:  g, Rgas, Cp,Rwater_vapor, rearth0, omega0,dd_pi
@@ -251,7 +251,6 @@ SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, theta, qv, qc, qr, rho, &
     rhom(k) = rho(k) * (1.0 + qv(k))
     qsv(k) = qv(k) * rho(k) / rhom(k)
 
-   !t(k) = p(k) / (rhom(k) * rair * (one + zvir * qv(k)))
     exner(k) = (p(k) / p0)**(rair/cpair)
     t(k) = theta(k)*exner(k)
   enddo
@@ -272,6 +271,8 @@ SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, theta, qv, qc, qr, rho, &
         qsv(k) = qsv(k) - deltaqsv
         precl = precl + deltaqsv * rhom(k) * dz / (dt * rhow)
 
+        ! Convert the temperature update from isobaric (RJ physics are isobaric)
+        ! to isochoric using Delta T_v = c_p / c_v Delta T_p
         qv(k) = qsv(k) / (1.0 - qsv(k))
         rhom(k) = rho(k) / (1.0 - qsv(k))
         p(k) = rhom(k) * rair * t(k) * (one + zvir * qv(k))
@@ -461,5 +462,5 @@ SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, theta, qv, qc, qr, rho, &
 
   return
 
-END SUBROUTINE DCMIP2016_PHYSICS 
+END SUBROUTINE DCMIP2016_PHYSICS_Z
 

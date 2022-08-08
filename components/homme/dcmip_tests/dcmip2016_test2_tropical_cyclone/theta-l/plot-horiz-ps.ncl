@@ -33,14 +33,14 @@ f = addfile(filename,"r")
 nlat = dimsizes(f->lat)
 nlon = dimsizes(f->lon)
 nlev = dimsizes(f->lev)
-
-t10  = closest_val( 10.0, f->time)
-t9  = closest_val( 9.0, f->time)
-t8  = closest_val( 8.0, f->time)
-t0  = closest_val( 0.0, f->time)
+time = f->time
 
 
-
+tend = closest_val(max(time), time)
+t34  = closest_val(tend * 3. / 4., time)
+t12  = closest_val(tend * 1. / 2., time)
+t14  = closest_val(tend * 1. / 4., time)
+t0   = closest_val(0.0, time)
 
 print("Plotting...")
 
@@ -74,31 +74,34 @@ res@cnLevelSpacingF      =  dx
 res@cnMinLevelValF       =  101500-(clev+.5)*dx
 res@cnMaxLevelValF       =  101500+(clev+.5)*dx
 
-res@tiMainString="PS t="+f->time(t0)
-ps = f->ps(t0,:,:)
+; Find ps offset
+ps0 = f->ps(t0,:,:)
+ps_offset = 101500 - max(ps0)
+
+res@tiMainString="PS t="+time(t14)
+ps = f->ps(t14,:,:)
 ; hack since mean ps is off for hcoord=1 case:
-ps_offset = 101500-max(ps)
 ps = ps + ps_offset
 print("applying ps_offset="+ps_offset)
-print(t0+" ps min/max = "+min(ps)+","+max(ps))
+print(t14+" ps min/max = "+min(ps)+","+max(ps))
 contour(0) = gsn_csm_contour_map(wks,ps(:,:),res)  ; create the plot
 
-res@tiMainString="PS t="+f->time(t8)
-ps = f->ps(t8,:,:)
+res@tiMainString="PS t="+f->time(t12)
+ps = f->ps(t12,:,:)
 ps = ps + ps_offset
-print(t8+" ps min/max = "+min(ps)+","+max(ps))
+print(t12+" ps min/max = "+min(ps)+","+max(ps))
 contour(1) = gsn_csm_contour_map(wks,ps(:,:),res)  ; create the plot
 
-res@tiMainString="PS t="+f->time(t9)
-ps = f->ps(t9,:,:)
+res@tiMainString="PS t="+f->time(t34)
+ps = f->ps(t34,:,:)
 ps = ps + ps_offset
-print(t9+" ps min/max = "+min(ps)+","+max(ps))
+print(t34+" ps min/max = "+min(ps)+","+max(ps))
 contour(2) = gsn_csm_contour_map(wks,ps(:,:),res)  ; create the plot
 
-res@tiMainString="PS t="+f->time(t10)
-ps = f->ps(t10,:,:)
+res@tiMainString="PS t="+f->time(tend)
+ps = f->ps(tend,:,:)
 ps = ps + ps_offset
-print(t10+" ps min/max = "+min(ps)+","+max(ps))
+print(tend+" ps min/max = "+min(ps)+","+max(ps))
 contour(3) = gsn_csm_contour_map(wks,ps(:,:),res)  ; create the plot
 
 resP                     = True                ; modify the panel plot

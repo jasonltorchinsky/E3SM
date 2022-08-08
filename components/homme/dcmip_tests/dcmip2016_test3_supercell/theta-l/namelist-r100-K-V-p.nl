@@ -35,8 +35,8 @@
   theta_hydrostatic_mode = .false.
   dcmip16_prec_type = 0                         ! 0 = Kessler
   dcmip16_pbl_type  = 0                         ! 0 = Basic
-  dcmip16_phys_type = 0                         ! 0 = Isochoric, 1 = Isobaric 
-  hcoord            = 0                         ! 0 = Pressure,  1 = Geometric Height
+  dcmip16_phys_type = 1                         ! 0 = Isobaric, 1 = Isochoric
+  hcoord            = 0                         ! 0 = Pressure, 1 = Geometric Height
 /
 
 &vert_nl

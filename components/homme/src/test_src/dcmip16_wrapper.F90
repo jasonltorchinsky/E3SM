@@ -996,9 +996,9 @@ subroutine dcmip2016_test2_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl, t
       ! Physics are isobaric.
       ! Use physics to get isobaric temperature change and phase changes
       ! Then convert temperature change to isochoric if necessary.
-      call DCMIP2016_PHYSICS_P(test, u_c, v_c, p_c, th_c, qv_c, qc_c, qr_c, &
-                               rho_c, dt, z_c, zi_c, lat, nlev, &
-                               precl(i,j,ie), pbl_type, prec_type)
+      call DCMIP2016_PHYSICS(test, u_c, v_c, p_c, th_c, qv_c, qc_c, qr_c, &
+                             rho_c, dt, z_c, zi_c, lat, nlev, &
+                             precl(i,j,ie), pbl_type, prec_type, phys_type)
 
       ! revert column
       u(i,j,:)  = u_c(nlev:1:-1)
@@ -1032,22 +1032,18 @@ subroutine dcmip2016_test2_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl, t
 !    endif
     T = exner_kess*theta_kess
 
-
-
     ! set dynamics forcing
     elem(ie)%derived%FM(:,:,1,:) = (u - u0)/dt
     elem(ie)%derived%FM(:,:,2,:) = (v - v0)/dt
 !    elem(ie)%derived%FT(:,:,:)   = (T - T0)/dt
-    ! Convert the temperature update from the physics to isochoric
-    ! temperature update if required.
-    if (phys_type .eq. 0) then ! Isochoric (constant volume)
-      elem(ie)%derived%FT(:,:,:) = cp / (cp - Rgas) * (T - T0)/dt
-    elseif (phys_type .eq. 1) then ! Isobaric (constant pressure)
-      elem(ie)%derived%FT(:,:,:) = (T - T0)/dt
-    else
-      write(*,*) 'Invalid phys_type specified in DCMIP16_WRAPPER', phys_type
-      stop
-    endif
+  if (phys_type .eq. 0) then ! Isobaric (for pressure coordinate)
+    elem(ie)%derived%FT(:,:,:) = (T - T0)/dt
+  elseif (phys_type .eq. 1) then ! Isochoric (for height coordinate)
+    elem(ie)%derived%FT(:,:,:) = cp / (cp - Rgas) * (T - T0)/dt
+  else
+    write(*,*) 'Invalid phys_type specified in DCMIP16_WRAPPER', phys_type
+    stop
+  endif
 
     ! set tracer-mass forcing. conserve tracer mass
     ! rho_dry*(qv-qv0)*dz = FQ deta, dz/deta = -dp/(g*rho)
@@ -1087,6 +1083,10 @@ subroutine dcmip2016_test3_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl)
   real(rl), dimension(np,np,nlevp):: zi
   real(rl), dimension(np,np)      :: ps,delta_ps(np,np)
   real(rl) :: max_w, max_precl, min_ps
+
+  integer :: phys_type
+
+  phys_type = dcmip16_phys_type
 
   max_w     = -huge(rl)
   max_precl = -huge(rl)
@@ -1158,28 +1158,36 @@ subroutine dcmip2016_test3_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl)
     qr    = qr_inv   (:,:,nlev:1:-1)
 
 
-    ! convert from theta to T w.r.t. new model state
-    ! assume hydrostatic pressure pi changed by qv forcing
-    ! assume NH pressure perturbation unchanged
-    if (hcoord==0) then
-       delta_ps = sum( (rho_dry/rho)*dp*(qv-qv0) , 3 )
-       do k=1,nlev
-          p(:,:,k) = p(:,:,k) + hvcoord%hybm(k)*delta_ps(:,:)
-       enddo
-       exner_kess = (p/p0)**(Rgas/Cp)
-    else
-       ! use p returned by physics.  assumes constant rho_dry and phinh:
-       rho_new=rho_dry*(1+qv)  
-       Rstar = Rgas + (Rwater_vapor - Rgas)*(qv*rho_dry/rho_new)
-       p_pk =  rho_new*Rstar* theta_kess  !  p = rho Rstart T  = rho Rstar theta exner
-       exner_kess = ( p_pk / p0)**( kappa / ( 1 - kappa))
-    endif
+!    ! convert from theta to T w.r.t. new model state
+!    ! assume hydrostatic pressure pi changed by qv forcing
+!    ! assume NH pressure perturbation unchanged
+!    if (hcoord==0) then
+!       delta_ps = sum( (rho_dry/rho)*dp*(qv-qv0) , 3 )
+!       do k=1,nlev
+!          p(:,:,k) = p(:,:,k) + hvcoord%hybm(k)*delta_ps(:,:)
+!       enddo
+!       exner_kess = (p/p0)**(Rgas/Cp)
+!    else
+!       ! use p returned by physics.  assumes constant rho_dry and phinh:
+!       rho_new=rho_dry*(1+qv)  
+!       Rstar = Rgas + (Rwater_vapor - Rgas)*(qv*rho_dry/rho_new)
+!       p_pk =  rho_new*Rstar* theta_kess  !  p = rho Rstart T  = rho Rstar theta exner
+!       exner_kess = ( p_pk / p0)**( kappa / ( 1 - kappa))
+!    endif
     T = exner_kess*theta_kess
 
     ! set dynamics forcing
     elem(ie)%derived%FM(:,:,1,:) = 0
     elem(ie)%derived%FM(:,:,2,:) = 0
-    elem(ie)%derived%FT(:,:,:)   = (T-T0)/dt
+ !   elem(ie)%derived%FT(:,:,:)   = (T-T0)/dt
+    if (phys_type .eq. 0) then ! Isobaric (for pressure coordinate)
+      elem(ie)%derived%FT(:,:,:) = (T - T0)/dt
+    elseif (phys_type .eq. 1) then ! Isochoric (for height coordinate)
+      elem(ie)%derived%FT(:,:,:) = cp / (cp - Rgas) * (T - T0)/dt
+    else
+      write(*,*) 'Invalid phys_type specified in DCMIP16_WRAPPER', phys_type
+      stop
+    endif
 
     ! set tracer-mass forcing. conserve tracer mass.  
     ! rho_dry*(qv-qv0)*dz = FQ deta, dz/deta = -dp/(g*rho)

@@ -7,7 +7,7 @@
 #SBATCH --error=%j.err
 
 #SBATCH --qos=debug
-#SBATCH --nodes=24
+#SBATCH --nodes=32
 #SBATCH --constraint=knl
 
 #SBATCH --account=e3sm
@@ -41,6 +41,7 @@ ncl plot-horiz-ps.ncl
 \mv -f x-sections.pdf ${prefix}_x-sections.pdf
 \mv -f wind.pdf ${prefix}_wind.pdf
 \mv -f psmap.pdf ${prefix}_psmap.pdf
+\mv -f ps.pdf ${prefix}_ps.pdf
 #\mv -f vert-crossx.pdf ${prefix}_vert-crossx.pdf
 }
 
