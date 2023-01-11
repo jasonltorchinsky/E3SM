@@ -18,6 +18,7 @@
 
 # Set variables, load modules
 EXEC=../../../test_execs/theta-l-nlev30/theta-l-nlev30
+module load python
 conda activate geocat
 module load ncl
 

@@ -125,8 +125,6 @@ else
 	conda activate geocat
 fi
 
-
-
 # Compile HOMME
 echo "-- Compiling HOMME..."
 
