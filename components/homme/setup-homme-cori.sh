@@ -110,6 +110,22 @@ export mode
 echo "-- Loading necessary modules..."
 
 eval `$e3sm/cime/CIME/Tools/get_case_env`
+# Create GeoCAT conda environment if it doesn't exist
+module load python
+find_in_conda_env(){
+    conda env list | grep "${@}" >/dev/null 2>/dev/null
+}
+
+if find_in_conda_env ".*geocat.*" ; then
+	echo '-- Found geocat conda environment.'
+	conda activate geocat
+else
+	echo '-- Failed to find geocat conda environment,  installing...'
+	conda create -n geocat -c conda-forge geocat-comp geocat-viz matplotlib cartopy jupyter xarray cmaps -y
+	conda activate geocat
+fi
+
+
 
 # Compile HOMME
 echo "-- Compiling HOMME..."
