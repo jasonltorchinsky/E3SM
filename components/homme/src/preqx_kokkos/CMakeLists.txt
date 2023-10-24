@@ -120,7 +120,7 @@ MACRO(PREQX_KOKKOS_SETUP)
     ${TEST_SRC_DIR}/dcmip2012_test5.F90
     ${TEST_SRC_DIR}/dcmip2016-baroclinic.F90
     ${TEST_SRC_DIR}/dcmip2016-kessler.F90
-    ${TEST_SRC_DIR}/dcmip2016-physics-z.F90
+    ${TEST_SRC_DIR}/dcmip2016-physics-p.F90
     ${TEST_SRC_DIR}/dcmip2016-simple-physics-v5.F90
     ${TEST_SRC_DIR}/dcmip2016-simple-physics-v6.F90
     ${TEST_SRC_DIR}/dcmip2016-supercell.F90
