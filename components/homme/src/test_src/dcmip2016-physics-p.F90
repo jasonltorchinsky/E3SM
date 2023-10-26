@@ -131,7 +131,7 @@ SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, theta, qv, qc, qr, rho, &
   ! Local Constants for Simple Physics
   !------------------------------------------------
   REAL(8), PARAMETER ::     &
-    C        = 0.0011d0,    & ! From Smith and Vogl 2008
+    C        = 0.00011d0,   & !0.0011d0,    & ! From Smith and Vogl 2008
     SST_TC   = 302.15d0,    & ! Constant Value for SST
     T0       = 273.16d0,    & ! Control temp for calculation of qsat (K)
     e0       = 610.78d0,    & ! Saturation vapor pressure at T0 (Pa)
@@ -286,6 +286,10 @@ SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, theta, qv, qc, qr, rho, &
         deltat(k) = (latvap / cpair) * deltaqsv ! Temperature update is isobaric
         qsv(k) = qsv(k) - deltaqsv
         precl = precl + deltaqsv * rhom(k) * dz / (dt * rhow)
+        
+        ! Reed-Jablonowski updates moist mixing ratios
+        ! So we must update dry mixing ratios
+        qv(k) = qsv(k) / (one - qsv(k))
       endif
     enddo
 
@@ -309,6 +313,10 @@ SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, theta, qv, qc, qr, rho, &
     ! Calculate temperature update (Kessler is isobaric)
     do k = 1, nz
       deltat(k) = theta(k) * exner(k) - t(k)
+
+      ! Kessler updates dry mixing ratios
+      ! So we must update moist mixing ratios
+      qsv(k)  = qv(k) / (one + qv(k))
     enddo
 
   else
@@ -317,29 +325,13 @@ SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, theta, qv, qc, qr, rho, &
     stop
   endif
 
-
   ! Apply temperature update, and update other state variables
   do k = 1, nz
     t(k) = t(k) + deltat(k)
     theta(k) = t(k) / exner(k)
+
+    rhom(k) = p(k) / (rair * t(k) * (one + zvir * qsv(k)))
   enddo
- 
-  ! Reed-Jablonowski phsyics updates moist mixing ratios
-  ! So we must update dry mixing ratios
-  if (prec_type .eq. 1) then
-    do k = 1, nz
-      if (qsv(k) .gt. qsat(k)) then
-        rhom(k) = p(k) / (rair * t(k) * (one + zvir * qsv(k)))
-      end if
-    end do
-  ! Kessler physics updates dry mixing ratios
-  ! So we must update moist mixing ratios
-  elseif (prec_type .eq. 0) then
-    do k = 1, nz
-      qsv(k)  = qv(k) / (one + qv(k))
-      rhom(k) = p(k) / (rair * t(k) * (one + zvir * qsv(k)))
-    end do 
-  end if
  
   !----------------------------------------------------
   ! Update the geometric height levels

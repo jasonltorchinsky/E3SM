@@ -12,69 +12,75 @@ do
 	esac
 done
 
-# [Optional] Declare development branch for E3SM
+# Declare development branch for E3SM
 # Useful for developing multiple branches simultaneously
 branch=jasonltorchinsky/dcmip2016-physics-p
 
 # Declare directory paths
-e3sm=$(pwd)/../..
-homme=$(pwd)
+# E3SM source code directory
+e3sm=$(pwd)/../../../..
+# HOMME subdirectory
+homme=$e3sm/components/homme
+# Scratch space to contain E3SM compiled files
 scratch=$PSCRATCH/E3SM
+# Working directory to compile the development branch of HOMME to
 wdir=$scratch/$branch/homme
+# Directory to machine file, must be changed for each machine
 mach=$homme/cmake/machineFiles/perlmutter-nocuda-gnu.cmake
 
+# Selects which test to compile
 case "${test}" in
-	12_1_1) 
+	dcmip2012_1_1) 
 		testname='DCMIP 2012 Test 1.1 - 3D Deformational Flow'
 		testdir=$wdir/dcmip_tests/dcmip2012_test1.1_3d_deformational_flow/preqx
 		mode='preqx'
 		;;
-	12_1_2) 
+	dcmip2012_1_2) 
 		testname='DCMIP 2012 Test 1.2 - Hadley-Like Meridional Circulation'
 		testdir=$wdir/dcmip_tests/dcmip2012_test1.2_hadley_meridional_circulation/preqx
 		mode='preqx'
 		;;
-	12_1_3) 
+	dcmip2012_1_3) 
 		testname='DCMIP 2012 Test 1.3 - Thin Clouds Over Orography'
 		testdir=$wdir/dcmip_tests/dcmip2012_test1.3_thin_clouds_over_orography/preqx
 		mode='preqx'
 		;;
-	12_2_0) 
+	dcmip2012_2_0) 
 		testname='DCMIP 2012 Test 2.0 - Steady State with Orography'
 		testdir=$wdir/dcmip_tests/dcmip2012_test2.0_steady_state_with_orography/theta-l
 		mode='theta-l'
 		;;
-	12_2_1) 
+	dcmip2012_2_1) 
 		testname='DCMIP 2012 Test 2.1 - Non-Sheared Background Flow with Orography'
 		testdir=$wdir/dcmip_tests/dcmip2012_test2.1_nh_mountain_waves_no_shear/theta-l
 		mode='theta-l'
 		;;
-	12_2_2) 
+	dcmip2012_2_2) 
 		testname='DCMIP 2012 Test 2.2 - Sheared Background Flow with Orography'
 		testdir=$wdir/dcmip_tests/dcmip2012_test2.2_nh_mountain_waves_with_shear/theta-l
 		mode='theta-l'
 		;;
-	12_3) 
+	dcmip2012_3) 
 		testname='DCMIP 2012 Test 3 - Non-Hydrostatic Gravity Waves'
 		testdir=$wdir/dcmip_tests/dcmip2012_test3.1_nh_gravity_waves/theta-l
 		mode='theta-l'
 		;;
-	12_4_1) 
+	dcmip2012_4_1) 
 		testname='DCMIP 2012 Test 4.1 - Baroclinic Instability'
 		testdir=$wdir/dcmip_tests/dcmip2012_test4.1_baroclinic_instability/theta-l
 		mode='theta-l'
 		;;
-	16_1) 
+	dcmip2016_1) 
 		testname='DCMIP 2016 Test 1 - Moist Baroclinic Wave'
 		testdir=$wdir/dcmip_tests/dcmip2016_test1_baroclinic_wave/theta-l
 		mode='theta-l'
 		;;
-	16_2) 
+	dcmip2016_2) 
 		testname='DCMIP 2016 Test 2 - Tropical Cyclone'
 		testdir=$wdir/dcmip_tests/dcmip2016_test2_tropical_cyclone/theta-l
 		mode='theta-l'
 		;;
-	16_3) 
+	dcmip2016_3) 
 		testname='DCMIP 2016 Test 3 - Supercell'
 		testdir=$wdir/dcmip_tests/dcmip2016_test3_supercell/theta-l
 		mode='theta-l'
