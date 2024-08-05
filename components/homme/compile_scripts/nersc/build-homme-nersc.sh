@@ -14,7 +14,7 @@ done
 
 # Declare development branch for E3SM
 # Useful for developing multiple branches simultaneously
-branch=jasonltorchinsky/scripts/current
+branch=jasonltorchinsky/dcmip2016-2-nml-update
 
 # Declare directory paths
 # Current directory to return to
@@ -28,7 +28,7 @@ scratch=$PSCRATCH/E3SM
 # Working directory to compile the development branch of HOMME to
 wdir=$scratch/$branch/homme
 # Directory to machine file, must be changed for each machine
-mach=$homme/cmake/machineFiles/perlmutter-nocuda-gnu.cmake
+mach=$homme/cmake/machineFiles/pm-cpu.cmake
 
 # Load the necessary modules
 echo "-- WARNING: Ensure that necessary modules are lodaded by running"
