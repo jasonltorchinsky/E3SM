@@ -123,7 +123,7 @@ MACRO(THETAL_KOKKOS_SETUP)
     ${TEST_SRC_DIR}/dcmip2012_test4.F90
     ${TEST_SRC_DIR}/dcmip2016-baroclinic.F90
     ${TEST_SRC_DIR}/dcmip2016-kessler.F90
-    ${TEST_SRC_DIR}/dcmip2016-physics-z.F90
+    ${TEST_SRC_DIR}/dcmip2016-physics-p.F90
     ${TEST_SRC_DIR}/dcmip2016-supercell.F90
     ${TEST_SRC_DIR}/dcmip2016-terminator.F90
     ${TEST_SRC_DIR}/dcmip2016-tropical-cyclone.F90
