@@ -1,5 +1,6 @@
 !
 ! Theta-l: Namelist for DCMIP 2016 Test 2 - Tropical Cyclone
+! https://e3sm.atlassian.net/wiki/spaces/DOC/pages/1044644202/EAM+s+HOMME+dycore
 !_______________________________________________________________________
 &ctl_nl
   nthreads          = 1
@@ -33,6 +34,7 @@
   vfile_mid     = "../vcoord/camm-30.ascii"
   vfile_int     = "../vcoord/cami-30.ascii"
 /
+
 &analysis_nl
   output_dir        = "./movies/"     ! Destination directory for NetCDF file
   output_timeunits  = 2,              ! 0 = Timesteps, 1 = Days, 2 = Hours, 3 = Seconds
@@ -44,8 +46,8 @@
   num_io_procs      = 16
   interp_gridtype   = 1
 /
+
 &prof_inparm
   profile_outpe_num   = 100
   profile_single_file = .true.
 /
-

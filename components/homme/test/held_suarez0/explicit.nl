@@ -1,3 +1,6 @@
+!
+! Theta-l: Namelist for Held-Suarez
+!_______________________________________________________________________
 &ctl_nl
 NThreads      = 1
 partmethod    = 4
