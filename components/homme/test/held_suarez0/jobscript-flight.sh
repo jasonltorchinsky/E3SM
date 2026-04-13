@@ -38,7 +38,8 @@ CORES_PER_TASK=2 # Flight has hyperthreading enabled, so use 2
 NVCORES=$(( CORES_PER_TASK * NCORES )) # Virtual Cores
 
 ### Create output directory - SHOULD MATCH `output_dir` OF NAMELIST
-mkdir -p movies
+OUTPUT_DIR="movies"
+mkdir -p ${OUTPUT_DIR}
 
 ### Executable location, module for NCL
 WORK_HOMME=../.. # Relative path
@@ -53,8 +54,17 @@ function run {
     \cp -f $namelist input.nl
     srun -K -c $CORES_PER_TASK -n $NTASKS -N $SLURM_NNODES $EXEC < input.nl
     date
+
+    # Save output to run-specific files
+    \mv -f ${OUTPUT_DIR}/held_suarez01.nc   ${OUTPUT_DIR}/${prefix}_held_suarez0.nc
 }
 
 # Max NTASKS is ne*ne*6, with ne specified in the namelist
 MAX_NTASKS=$(( 8 * 8 * 6 ))
 prefix=r400  ; run $(($NVCORES>$(( $CORES_PER_TASK * $MAX_NTASKS ))?MAX_NTASKS:NCORES))
+
+MAX_NTASKS=$(( 30 * 30 * 6 ))
+prefix=r100  ; run $(($NVCORES>$(( $CORES_PER_TASK * $MAX_NTASKS ))?MAX_NTASKS:NCORES))
+
+MAX_NTASKS=$(( 60 * 60 * 6 ))
+prefix=r050  ; run $(($NVCORES>$(( $CORES_PER_TASK * $MAX_NTASKS ))?MAX_NTASKS:NCORES))

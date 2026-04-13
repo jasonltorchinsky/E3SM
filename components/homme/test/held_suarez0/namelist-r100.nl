@@ -8,7 +8,7 @@
   topology               = "cube"          ! Mesh Type: Cubed Sphere
   test_case              = "held_suarez0"  ! Test Identifier
   runtype                = 0
-  ne                     = 8               ! Number of Elements Along Edge of Each Cube Face
+  ne                     = 30              ! Number of Elements Along Edge of Each Cube Face
   qsize                  = 0               ! Number of Tracer Fields
   ndays                  = 1460
   statefreq              = 1440            ! Number of Steps Between Screen Dumps
@@ -16,7 +16,7 @@
   restartdir             = "./restart/"
   restartfile            = "restart/R0001"
   runtype                = 0               ! 0 = New Run
-  tstep                  = 900             ! Largest Timestep in Seconds
+  tstep                  = 300             ! Largest Timestep in Seconds
   integration            = 'explicit'      ! Time Integration - 'explicit', 'implicit'
   tstep_type             = 9               ! IMEX Scheme (Default: 9)
   rsplit                 = -1              ! Remapping Frequency (Default: 6)
