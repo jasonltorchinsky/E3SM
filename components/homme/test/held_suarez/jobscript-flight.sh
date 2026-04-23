@@ -3,7 +3,7 @@
 #   Jobscript for launching Held-Suarez on Flight, an SRN Capacity Cluster
 #
 
-#SBATCH --job-name=held-suarez0
+#SBATCH --job-name=held-suarez
 #SBATCH --output=%j.out
 #SBATCH --error=%j.err
 
@@ -20,7 +20,7 @@
 ### We assume a source code directory structure of ${SRC_ROOT}/e3sm/${BRANCH_NAME},
 ### which we will recreate in the "work space".
 SRC_ROOT=${HOME}/codes
-BRANCH_NAME=jasonltorchinsky/flight
+BRANCH_NAME=jasonltorchinsky/held-suarez
 
 SRC_E3SM=${SRC_ROOT}/e3sm/${BRANCH_NAME}
 
@@ -55,7 +55,7 @@ function run {
     date
 
     # Save output to run-specific files
-    \mv -f ${OUTPUT_DIR}/held_suarez01.nc   ${OUTPUT_DIR}/${PREFIX}-held_suarez0.nc
+    \mv -f ${OUTPUT_DIR}/held_suarez1.nc   ${OUTPUT_DIR}/${PREFIX}-held_suarez.nc
 }
 
 ### Max NTASKS is ne*ne*6, with ne specified in the namelist

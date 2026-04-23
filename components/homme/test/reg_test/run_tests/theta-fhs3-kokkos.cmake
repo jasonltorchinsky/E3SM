@@ -10,8 +10,8 @@ SET(VCOORD_FILES ${HOMME_ROOT}/test/vcoord/sab*-128.ascii)
 
 # compare all of these files against baselines:
 SET(NC_OUTPUT_FILES
-  held_suarez01.nc
-  held_suarez02.nc)
+  held_suarez1.nc
+  held_suarez2.nc)
 
 #DO NOT MOD
 SET (HOMME_TEST_VCOORD_INT_FILE sabi-128.ascii)

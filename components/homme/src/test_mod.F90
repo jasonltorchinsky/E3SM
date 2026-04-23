@@ -25,7 +25,7 @@ use dcmip12_wrapper,      only: dcmip2012_test1_1, dcmip2012_test1_2, dcmip2012_
 use dcmip16_wrapper,      only: dcmip2016_test1, dcmip2016_test2, dcmip2016_test3, &
                                 dcmip2016_test1_forcing, dcmip2016_test2_forcing, dcmip2016_test3_forcing, &
                                 dcmip2016_pg_init, dcmip2016_test1_pg, dcmip2016_test1_pg_forcing, dcmip2016_init
-use held_suarez_mod,      only: hs0_init_state
+use held_suarez_mod,      only: hs_init_state
 
 use dry_planar_tests,     only: planar_hydro_gravity_wave_init, planar_nonhydro_gravity_wave_init
 use dry_planar_tests,     only: planar_hydro_mountain_wave_init, planar_nonhydro_mountain_wave_init, planar_schar_mountain_wave_init
@@ -86,7 +86,7 @@ subroutine set_test_initial_conditions(elem, deriv, hybrid, hvcoord, tl, nets, n
     case('mtest1'); test_with_forcing = .true. ;
     case('mtest2'); test_with_forcing = .true. ;
     case('mtest3'); test_with_forcing = .true. ;
-    case('held_suarez0'); test_with_forcing = .true. ;
+    case('held_suarez'); test_with_forcing = .true. ;
     case('jw_baroclinic');
     case('planar_hydro_gravity_wave');
     case('planar_nonhydro_gravity_wave');
@@ -142,7 +142,7 @@ subroutine set_test_initial_conditions(elem, deriv, hybrid, hvcoord, tl, nets, n
       case('mtest1');             call mtest_init       (elem,hybrid,hvcoord,nets,nete,1)
       case('mtest2');             call mtest_init       (elem,hybrid,hvcoord,nets,nete,2)
       case('mtest3');             call mtest_init       (elem,hybrid,hvcoord,nets,nete,3)
-      case('held_suarez0');       call hs0_init_state   (elem,hybrid,hvcoord,nets,nete,300.0_rl)
+      case('held_suarez');        call hs_init_state    (elem,hybrid,hvcoord,nets,nete,300.0_rl,sub_case)
       case('jw_baroclinic');      call jw_baroclinic    (elem,hybrid,hvcoord,nets,nete)
       case('planar_hydro_gravity_wave');            call planar_hydro_gravity_wave_init(elem,hybrid,hvcoord,nets,nete)
       case('planar_nonhydro_gravity_wave');         call planar_nonhydro_gravity_wave_init(elem,hybrid,hvcoord,nets,nete)
@@ -269,7 +269,7 @@ subroutine compute_test_forcing(elem,hybrid,hvcoord,nt,ntQ,dt,nets,nete,tl)
     case('planar_rising_bubble_pg2');  
             if (bubble_moist) call dcmip2016_test1_pg_forcing(elem,hybrid,hvcoord,nets,nete,nt,ntQ,dt,tl)
 
-    case('held_suarez0');
+    case('held_suarez');
        do ie=nets,nete
           call hs_forcing(elem(ie),hvcoord,nt,ntQ,dt)
        enddo

@@ -6,7 +6,8 @@
   nthreads               = 1
   partmethod             = 4               ! Mesh Parition Method: 4 = Space Filling Curve
   topology               = "cube"          ! Mesh Type: Cubed Sphere
-  test_case              = "held_suarez0"  ! Test Identifier
+  test_case              = "held_suarez"   ! Test Identifier
+  sub_case               = 0               ! 0 = Original
   ne                     = 8               ! Number of Elements Along Edge of Each Cube Face
   qsize                  = 0               ! Number of Tracer Fields
   ndays                  = 1460
@@ -44,8 +45,8 @@
 /
 
 &vert_nl
-  vfile_mid     = "../vcoord/sabm-72.ascii"
-  vfile_int     = "../vcoord/sabi-72.ascii"
+  vfile_mid     = "../vcoord/camm-30.ascii"
+  vfile_int     = "../vcoord/cami-30.ascii"
 /
 
 &analysis_nl
@@ -54,7 +55,7 @@
   output_frequency  = 24,             ! Every N time units
   output_start_time = 0,              ! Output start time
   output_end_time   = 99999,          ! Output end time
-  output_varnames1  = 'u','v','T','zeta','ps','p','w'   ! Variables to write to file
+  output_varnames1  = 'u','v','T','zeta','ps','p','pnh','w'   ! Variables to write to file
   interp_type       = 1               ! 0 = Native grid, 1 = Bilinear
   interp_gridtype   = 1
   interp_lon0       = -180.0          ! Shift longitude range to [-180, +180)

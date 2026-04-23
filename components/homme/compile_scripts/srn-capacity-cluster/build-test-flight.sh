@@ -18,7 +18,7 @@ PWD=$(pwd)
 ### We assume a source code directory structure of ${SRC_ROOT}/e3sm/${BRANCH_NAME},
 ### which we will recreate in the "work space".
 SRC_ROOT=${HOME}/codes
-BRANCH_NAME=jasonltorchinsky/flight
+BRANCH_NAME=jasonltorchinsky/held-suarez
 
 SRC_E3SM=${SRC_ROOT}/e3sm/${BRANCH_NAME}
 SRC_HOMME=${SRC_E3SM}/components/homme
@@ -56,7 +56,7 @@ CMAKE_FLAGS=""
 
 ### Select test to compile
 case "${TEST_ID}" in
-	held_suarez0)
+	held_suarez)
 		TEST_NAME="Held-Suarez"
 		MODE=theta-l
 		NLEVS=(30 72 128)

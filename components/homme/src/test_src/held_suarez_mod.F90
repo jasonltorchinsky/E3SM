@@ -13,6 +13,7 @@ module held_suarez_mod
   use hybrid_mod,             only: hybrid_t
   use hybvcoord_mod,          only: hvcoord_t
   use kinds,                  only: real_kind, iulog
+  use parallel_mod,           only: abortmp
   use physical_constants,     only: p0, kappa,g, dd_pi, Rgas
   use physics_mod,            only: prim_condense
   use time_mod,               only: secpday
@@ -32,7 +33,7 @@ private
 
   public :: hs_v_forcing
   public :: hs_T_forcing
-  public :: hs0_init_state
+  public :: hs_init_state
   public :: hs_forcing
 
 contains
@@ -215,6 +216,27 @@ contains
       
   end function hs_T_forcing
 
+  subroutine hs_init_state(elem, hybrid, hvcoord,nets,nete,Tinit,sub_case)
+
+    type(element_t),        intent(inout) :: elem(:)
+    type(hybrid_t),         intent(in)    :: hybrid                   ! hybrid parallel structure
+    type (hvcoord_t),       intent(in)    :: hvcoord
+    integer,                intent(in)    :: nets
+    integer,                intent(in)    :: nete
+    real (kind=real_kind),  intent(in)    :: Tinit
+    integer,                intent(in)    :: sub_case
+
+    if (hybrid%masterthread) write(iulog,*) 'initializing Held-Suarez primitive equations test sub_case ', sub_case
+
+    select case (sub_case)
+    case(0)
+      call hs0_init_state(elem, hybrid, hvcoord,nets,nete,Tinit)
+    case default
+      call abortmp('invalid sub_case: only subcase = 0 supported')
+    end select
+
+  end subroutine hs_init_state
+
   subroutine hs0_init_state(elem, hybrid, hvcoord,nets,nete,Tinit)
 
     type(element_t),        intent(inout) :: elem(:)
@@ -232,8 +254,6 @@ contains
     integer :: np1
     real (kind=real_kind) :: lat_mtn,lon_mtn,r_mtn,h_mtn,rsq,lat,lon
     real (kind=real_kind) :: temperature(np,np,nlev),p(np,np),exner(np,np),ps(np,np)
-
-    if (hybrid%masterthread) write(iulog,*) 'initializing Held-Suarez primitive equations test'
 
     nm1= 1
     n0 = 2
