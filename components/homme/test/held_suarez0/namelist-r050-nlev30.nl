@@ -7,7 +7,6 @@
   partmethod             = 4               ! Mesh Parition Method: 4 = Space Filling Curve
   topology               = "cube"          ! Mesh Type: Cubed Sphere
   test_case              = "held_suarez0"  ! Test Identifier
-  runtype                = 0
   ne                     = 60              ! Number of Elements Along Edge of Each Cube Face
   qsize                  = 0               ! Number of Tracer Fields
   ndays                  = 1460
@@ -55,7 +54,7 @@
   output_frequency  = 24,             ! Every N time units
   output_start_time = 0,              ! Output start time
   output_end_time   = 99999,          ! Output end time
-  output_varnames1  = 'u','v','T','zeta','ps'   ! Variables to write to file
+  output_varnames1  = 'u','v','T','zeta','ps','p','w'   ! Variables to write to file
   interp_type       = 1               ! 0 = Native grid, 1 = Bilinear
   interp_gridtype   = 1
   interp_lon0       = -180.0          ! Shift longitude range to [-180, +180)
