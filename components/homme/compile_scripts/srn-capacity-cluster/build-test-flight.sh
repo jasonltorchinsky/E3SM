@@ -59,8 +59,9 @@ case "${TEST_ID}" in
 	held_suarez0)
 		TEST_NAME="Held-Suarez"
 		MODE=theta-l
-		SRC_TEST_DIR=${SRC_TEST}/held_suarez0
-		WORK_TEST_DIR=${WORK_TEST}/held_suarez0
+		NLEVS=(30 72 128)
+		SRC_TEST_DIR=${SRC_TEST}/${TEST_ID}
+		WORK_TEST_DIR=${WORK_TEST}/${TEST_ID}
 		;;
 	*)
 		echo "-- Unable to parse test ID, or test ID is unsupported. Aborting..."
@@ -83,14 +84,15 @@ elif [[ "${MODE}" == "swim" ]]; then
 	CMAKE_FLAGS+=" -DBUILD_HOMME_SWIM=TRUE"
 fi
 
-echo ${CMAKE_FLAGS}
-
 ### Build Standalone HOMME
 echo "-- Building HOMME..."
 
-#cd ${WORK_HOMME}
-#cmake -C ${MACHINE_FILE} ${SRC_HOMME} ${CMAKE_FLAGS}
-#make -j ${MODE}
+cd ${WORK_HOMME}
+cmake -C ${MACHINE_FILE} ${SRC_HOMME} ${CMAKE_FLAGS}
+for NLEV in ${NLEVS[@]}
+do
+	make -j 16 ${MODE}-nlev${NLEV}
+done
 
 echo "-- HOMME built!"
 

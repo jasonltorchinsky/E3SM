@@ -44,27 +44,34 @@ mkdir -p ${OUTPUT_DIR}
 ### Executable location, module for NCL
 WORK_HOMME=../.. # Relative path
 TEST_EXECS=${WORK_HOMME}/test_execs
-EXEC=${TEST_EXECS}/theta-l-nlev30/theta-l-nlev30 # Default executable
 
-# Function to run the test
+### Function to run the test
 function run {
     local NTASKS=$1
-    echo "NTASKS = $NTASKS"
-    namelist=namelist-$prefix.nl
-    \cp -f $namelist input.nl
-    srun -K -c $CORES_PER_TASK -n $NTASKS -N $SLURM_NNODES $EXEC < input.nl
+    echo "NTASKS = ${NTASKS}"
+    NAMELIST=namelist-${PREFIX}.nl
+    \cp -f ${NAMELIST} input.nl
+    srun -K -c ${CORES_PER_TASK} -n ${NTASKS} -N ${SLURM_NNODES} ${EXEC} < input.nl
     date
 
     # Save output to run-specific files
-    \mv -f ${OUTPUT_DIR}/held_suarez01.nc   ${OUTPUT_DIR}/${prefix}_held_suarez0.nc
+    \mv -f ${OUTPUT_DIR}/held_suarez01.nc   ${OUTPUT_DIR}/${PREFIX}-held_suarez0.nc
 }
 
-# Max NTASKS is ne*ne*6, with ne specified in the namelist
+### Max NTASKS is ne*ne*6, with ne specified in the namelist
 MAX_NTASKS=$(( 8 * 8 * 6 ))
-prefix=r400  ; run $(($NVCORES>$(( $CORES_PER_TASK * $MAX_NTASKS ))?MAX_NTASKS:NCORES))
+MODE=theta-l
+NLEVS=(30 72 128)
+for NLEV in ${NLEVS[@]}
+do
+    EXEC=${TEST_EXECS}/${MODE}-nlev${NLEV}/${MODE}-nlev${NLEV} # Executable
+    PREFIX=r400-nlev${NLEV}
+    run $(($NVCORES>$(( $CORES_PER_TASK * $MAX_NTASKS ))?MAX_NTASKS:NCORES))
+done
 
-MAX_NTASKS=$(( 30 * 30 * 6 ))
-prefix=r100  ; run $(($NVCORES>$(( $CORES_PER_TASK * $MAX_NTASKS ))?MAX_NTASKS:NCORES))
+### The follow two won't run within the time limit, so we ignore them by default.
+#MAX_NTASKS=$(( 30 * 30 * 6 ))
+#PREFIX=r100  ; run $(($NVCORES>$(( $CORES_PER_TASK * $MAX_NTASKS ))?MAX_NTASKS:NCORES))
 
-MAX_NTASKS=$(( 60 * 60 * 6 ))
-prefix=r050  ; run $(($NVCORES>$(( $CORES_PER_TASK * $MAX_NTASKS ))?MAX_NTASKS:NCORES))
+#MAX_NTASKS=$(( 60 * 60 * 6 ))
+#PREFIX=r050  ; run $(($NVCORES>$(( $CORES_PER_TASK * $MAX_NTASKS ))?MAX_NTASKS:NCORES))

@@ -132,7 +132,7 @@ echo "-- Building HOMME..."
 
 cd ${WORK_HOMME}
 cmake -C ${MACHINE_FILE} ${SRC_HOMME} ${CMAKE_FLAGS}
-make -j ${MODE}
+make -j 16 ${MODE}
 
 echo "-- HOMME built!"
 
