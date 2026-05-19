@@ -7,7 +7,7 @@
   partmethod             = 4               ! Mesh Parition Method: 4 = Space Filling Curve
   topology               = "cube"          ! Mesh Type: Cubed Sphere
   test_case              = "held_suarez"   ! Test Identifier
-  sub_case               = 0               ! 0 = Original
+  sub_case               = 0               ! 0 = Original (Held & Suarez 1994), 1 = Stratosphere Modification (Polvani & Kushner 2002)
   ne                     = 30              ! Number of Elements Along Edge of Each Cube Face
   qsize                  = 0               ! Number of Tracer Fields
   ndays                  = 1460

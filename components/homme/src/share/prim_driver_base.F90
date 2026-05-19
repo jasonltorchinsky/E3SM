@@ -27,8 +27,8 @@ module prim_driver_base
                               red_sum, red_sum_int, red_flops, initreductionbuffer, &
                               red_max_index, red_min_index
 #if !defined(CAM) && !defined(SCREAM)
-  use prim_restart_mod, only : initrestartfile
-  use restart_io_mod ,  only : readrestart
+  use prim_restart_mod, only: initrestartfile
+  use restart_io_mod ,  only: readrestart
   use test_mod,         only: set_test_initial_conditions, compute_test_forcing
 #endif
 
@@ -150,7 +150,7 @@ contains
     use quadrature_mod, only : test_gauss, test_gausslobatto
     use repro_sum_mod,  only : repro_sum_defaultopts, repro_sum_setopts
     use time_mod,       only : nmax, time_at
-    use control_mod, only : topology
+    use control_mod,    only : topology
 #ifndef HOMME_WITHOUT_PIOLIBRARY
     use common_io_mod,  only : homme_pio_init
 #endif

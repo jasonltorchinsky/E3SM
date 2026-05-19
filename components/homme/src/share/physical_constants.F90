@@ -82,6 +82,6 @@ real (kind=real_kind), public :: Sx = 0.0
 real (kind=real_kind), public :: Sy = 0.0
 real (kind=real_kind), public :: dx, dy, dx_ref, dy_ref
 
-  real (kind=real_kind), public, parameter :: TREF = 288
+real (kind=real_kind), public, parameter :: TREF = 288
 
 end module physical_constants

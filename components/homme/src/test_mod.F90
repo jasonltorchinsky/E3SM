@@ -221,9 +221,9 @@ subroutine compute_test_forcing(elem,hybrid,hvcoord,nt,ntQ,dt,nets,nete,tl)
 
   ! apply forcing terms produced by HOMME stand-alone tests
 
-  use dcmip12_wrapper, only:  dcmip2012_test2_x_forcing
+  use dcmip12_wrapper, only: dcmip2012_test2_x_forcing
   use held_suarez_mod, only: hs_forcing
-  use control_mod,     only: ftype
+  use control_mod,     only: sub_case, ftype
   implicit none
   type(element_t),  intent(inout) :: elem(:)                            ! element array
   type(hybrid_t),   intent(in)    :: hybrid                             ! hybrid parallel structure
@@ -271,7 +271,7 @@ subroutine compute_test_forcing(elem,hybrid,hvcoord,nt,ntQ,dt,nets,nete,tl)
 
     case('held_suarez');
        do ie=nets,nete
-          call hs_forcing(elem(ie),hvcoord,nt,ntQ,dt)
+          call hs_forcing(elem(ie),hvcoord,nt,ntQ,dt,sub_case)
        enddo
 
   endselect
