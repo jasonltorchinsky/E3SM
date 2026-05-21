@@ -42,8 +42,8 @@ private
   real (kind=real_kind), public, parameter :: us76_TM_b(0:7) &
     = (/ 288.15D0, 216.65D0, 216.65D0, 228.65D0, 270.65D0, 270.65D0, 214.65D0, 186.946D0 /) ! Molecular-scale temperature at reference levels [K]
   real (kind=real_kind), public, parameter :: us76_p_b(0:7) &
-    = (/ 1.01325000D3, 2.26320640D2, 5.47488867D1, 8.68018685D0, 1.10906306D0, &
-       6.69388731D1, 3.95642043D2, 3.73383590D3 /) ! Pressure at reference levels [hPa]
+    = (/ 1.01325000D5, 2.26320640D4, 5.47488867D3, 8.68018685D2, 1.10906306D2, &
+       6.69388731D3, 3.95642043D4, 3.73383590D5 /) ! Pressure at reference levels [Pa]
 
   ! From (Polvani & Kushner 2002), doi: 10.1029/2001GL014284
   ! Typos corrected in, e.g., (Kushner & Polvani 2006), doi: 10.7916/D8G451FW
@@ -52,14 +52,14 @@ private
   real (kind=real_kind), public, parameter :: pk02_k_a       = 1.0D0/(40.0D0*secpday) ! [day^{-1}] => [sec^{-1}]
   real (kind=real_kind), public, parameter :: pk02_k_s       = 1.0D0/(4.0D0*secpday)  ! [day^{-1}] => [sec^{-1}]
   real (kind=real_kind), public, parameter :: pk02_k_max     = 1.0D0/(2.0D0*secpday)  ! [day^{-1}] => [sec^{-1}]
-  real (kind=real_kind), public, parameter :: pk02_p_sp      = 0.5D0  ! [hPa]
+  real (kind=real_kind), public, parameter :: pk02_p_sp      = 0.5D2  ! [Pa]
   real (kind=real_kind), public, parameter :: pk02_phi_0     = -50.0D0*(dd_pi/180.0D0)  ! [deg latitude] => [radians]
   real (kind=real_kind), public, parameter :: pk02_delta_phi = 10.0D0*(dd_pi/180.0D0)   ! [deg latitude] => [radians]
-  real (kind=real_kind), public, parameter :: pk02_p_T       = 100.0D0  ! [hPa]
+  real (kind=real_kind), public, parameter :: pk02_p_T       = 100.0D2  ! [Pa]
   real (kind=real_kind), public, parameter :: pk02_T_T       = 216.65D0 ! [K]
   real (kind=real_kind), public, parameter :: pk02_T_0       = 315.0D0  ! [K]
-  real (kind=real_kind), public, parameter :: pk02_p_0       = 1000.0D0 ! [hPa]
-  real (kind=real_kind), public, parameter :: pk02_kappa     = 2.0D0 / 7.0D0 ! [hPa]
+  real (kind=real_kind), public, parameter :: pk02_p_0       = 1000.0D2 ! [Pa]
+  real (kind=real_kind), public, parameter :: pk02_kappa     = 2.0D0 / 7.0D0 ! [N/A]
   real (kind=real_kind), public, parameter :: pk02_delta_y   = 60.0D0   ! [K]
   real (kind=real_kind), public, parameter :: pk02_delta_z   = 10.0D0   ! [K]
   real (kind=real_kind), public, parameter :: pk02_epsilon   = 10.0D0   ! [K]
@@ -288,8 +288,8 @@ contains
        end do
     end do
 
-    elemin%derived%FT(:,:,:) = elemin%derived%FT(:,:,:) + &
-         hs1_T_forcing(hvcoord,psfrc(1,1),temperature,elemin%spherep,np,nlev)
+    elemin%derived%FT(:,:,:) = elemin%derived%FT(:,:,:) & 
+         + hs1_T_forcing(hvcoord,psfrc(1,1),temperature,elemin%spherep,np,nlev)
 
     v(:,:,1:2,:) = elemin%state%v(:,:,1:2,:,nm1)
 #if ( defined MODEL_THETA_L ) 
@@ -359,7 +359,7 @@ contains
        do j = 1,npts
           do i = 1,npts
              ! Damp horizontal velocities
-             p = hvcoord%hyam(k) * hvcoord%ps0 + hvcoord%hybm(k) * ps(i,j) ! Pressure at midpoint
+             p = hvcoord%hyam(k) * hvcoord%ps0 + hvcoord%hybm(k) * ps(i,j) ! Pressure at midpoint [Pa]
              if (p >= pk02_p_sp) then
                k_sp = 0.0D0
              else ! p < pk02_p_sp
@@ -369,7 +369,7 @@ contains
              hs_v_frc(i,j,2,k) = -k_sp * v(i,j,2,k)
 
              ! Damp vertical velocity
-             p = hvcoord%hyai(k) * hvcoord%ps0 + hvcoord%hybi(k) * ps(i,j) ! Pressure at interface
+             p = hvcoord%hyai(k) * hvcoord%ps0 + hvcoord%hybi(k) * ps(i,j) ! Pressure at interface [Pa]
              if (p >= pk02_p_sp) then
                k_sp = 0.0D0
              else ! p < pk02_p_sp
@@ -432,7 +432,7 @@ contains
                 * MAX(0.0D0, (etam - pk02_sigma_b) / (1.0D0 - pk02_sigma_b)) &
                 * cslatsq(i,j) * cslatsq(i,j)
              
-             p = hvcoord%hyam(k) * hvcoord%ps0 + hvcoord%hybm(k) * ps(i,j) ! p
+             p = hvcoord%hyam(k) * hvcoord%ps0 + hvcoord%hybm(k) * ps(i,j) ! p; pressure at midpoint [Pa]
              if (p >= pk02_p_T) then ! Troposphere equilibrium temperature profile
                 logprat = LOG(p) - logps0 ! log(p / p0)
                 pratk = EXP(pk02_kappa * logprat) ! (p / p0)^kappa

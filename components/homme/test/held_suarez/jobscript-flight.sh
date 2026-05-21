@@ -69,9 +69,18 @@ do
     run $(($NVCORES>$(( $CORES_PER_TASK * $MAX_NTASKS ))?MAX_NTASKS:NCORES))
 done
 
-### The follow two won't run within the time limit, so we ignore them by default.
-#MAX_NTASKS=$(( 30 * 30 * 6 ))
-#PREFIX=r100  ; run $(($NVCORES>$(( $CORES_PER_TASK * $MAX_NTASKS ))?MAX_NTASKS:NCORES))
+### The following two won't run within the time limit, so we ignore them by default.
+MODE=theta-l
+NLEV=30
 
-#MAX_NTASKS=$(( 60 * 60 * 6 ))
-#PREFIX=r050  ; run $(($NVCORES>$(( $CORES_PER_TASK * $MAX_NTASKS ))?MAX_NTASKS:NCORES))
+if [ false ]; then
+    MAX_NTASKS=$(( 30 * 30 * 6 ))
+    PREFIX=r100-nlev${NLEV}
+    EXEC=${TEST_EXECS}/${MODE}-nlev${NLEV}/${MODE}-nlev${NLEV}
+    run $(($NVCORES>$(( $CORES_PER_TASK * $MAX_NTASKS ))?MAX_NTASKS:NCORES))
+
+    MAX_NTASKS=$(( 60 * 60 * 6 ))
+    PREFIX=r050-nlev${NLEV}
+    EXEC=${TEST_EXECS}/${MODE}-nlev${NLEV}/${MODE}-nlev${NLEV}
+    run $(($NVCORES>$(( $CORES_PER_TASK * $MAX_NTASKS ))?MAX_NTASKS:NCORES))
+fi

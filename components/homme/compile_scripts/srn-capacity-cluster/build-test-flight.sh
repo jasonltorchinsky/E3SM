@@ -97,13 +97,13 @@ done
 echo "-- HOMME built!"
 
 ### Copy namelists, etc. to the work space
-echo "-- Copying ${TEST_NAME} files to work space..."
+echo "-- Copying ${TEST_NAME} namelist and jobscript files to work space..."
 
 mkdir -p ${WORK_TEST_DIR}
 cp ${SRC_TEST_DIR}/*.nl ${WORK_TEST_DIR}
 cp ${SRC_TEST_DIR}/*.sh ${WORK_TEST_DIR}
 
-echo "-- Copied ${TEST_NAME} files to work space!"
+echo "-- Copied ${TEST_NAME} namelist and jobscript files to work space!"
 
 ### Return to directory this script was called from
 cd ${PWD}
