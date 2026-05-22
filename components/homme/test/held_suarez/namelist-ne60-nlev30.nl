@@ -8,15 +8,15 @@
   topology               = "cube"          ! Mesh Type: Cubed Sphere
   test_case              = "held_suarez"   ! Test Identifier
   sub_case               = 0               ! 0 = Original (Held & Suarez 1994), 1 = Stratosphere Modification (Polvani & Kushner 2002)
-  ne                     = 30              ! Number of Elements Along Edge of Each Cube Face
+  ne                     = 60              ! Number of Elements Along Edge of Each Cube Face
   qsize                  = 0               ! Number of Tracer Fields
-  ndays                  = 1460
+  ndays                  = 1200
   statefreq              = 1440            ! Number of Steps Between Screen Dumps
   restartfreq            = -1              ! Don't write restart files if < 0
   restartdir             = "./restart/"
   restartfile            = "restart/R0001"
   runtype                = 0               ! 0 = New Run
-  tstep                  = 300             ! Largest Timestep in Seconds
+  tstep                  = 150             ! Largest Timestep in Seconds
   integration            = 'explicit'      ! Time Integration - 'explicit', 'implicit'
   tstep_type             = 9               ! IMEX Scheme (Default: 9)
   rsplit                 = -1              ! Remapping Frequency (Default: 6)

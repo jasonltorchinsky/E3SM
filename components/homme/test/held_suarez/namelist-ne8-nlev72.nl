@@ -10,7 +10,7 @@
   sub_case               = 0               ! 0 = Original (Held & Suarez 1994), 1 = Stratosphere Modification (Polvani & Kushner 2002)
   ne                     = 8               ! Number of Elements Along Edge of Each Cube Face
   qsize                  = 0               ! Number of Tracer Fields
-  ndays                  = 1460
+  ndays                  = 1200
   statefreq              = 1440            ! Number of Steps Between Screen Dumps
   restartfreq            = -1              ! Don't write restart files if < 0
   restartdir             = "./restart/"
@@ -45,8 +45,8 @@
 /
 
 &vert_nl
-  vfile_mid     = "../vcoord/sabm-128.ascii"
-  vfile_int     = "../vcoord/sabi-128.ascii"
+  vfile_mid     = "../vcoord/acme-72m.ascii"
+  vfile_int     = "../vcoord/acme-72i.ascii"
 /
 
 &analysis_nl

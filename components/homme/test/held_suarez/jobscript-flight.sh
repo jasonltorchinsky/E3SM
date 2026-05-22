@@ -58,29 +58,49 @@ function run {
     \mv -f ${OUTPUT_DIR}/held_suarez1.nc   ${OUTPUT_DIR}/${PREFIX}-held_suarez.nc
 }
 
+#-------------------------------------------------------------------------------
+# Run ne = 8 at varying nlev
+#-------------------------------------------------------------------------------
 ### Max NTASKS is ne*ne*6, with ne specified in the namelist
-MAX_NTASKS=$(( 8 * 8 * 6 ))
-MODE=theta-l
-NLEVS=(30 72 128)
-for NLEV in ${NLEVS[@]}
-do
-    EXEC=${TEST_EXECS}/${MODE}-nlev${NLEV}/${MODE}-nlev${NLEV} # Executable
-    PREFIX=r400-nlev${NLEV}
-    run $(($NVCORES>$(( $CORES_PER_TASK * $MAX_NTASKS ))?MAX_NTASKS:NCORES))
-done
+if true; then
+    MAX_NTASKS=$(( 8 * 8 * 6 ))
+    MODE=theta-l
+    NLEVS=(30 72 128)
+    for NLEV in ${NLEVS[@]}
+    do
+        EXEC=${TEST_EXECS}/${MODE}-nlev${NLEV}/${MODE}-nlev${NLEV} # Executable
+        PREFIX=ne8-nlev${NLEV}
+        run $(($NVCORES>$(( $CORES_PER_TASK * $MAX_NTASKS ))?MAX_NTASKS:NCORES))
+    done
+fi
 
 ### The following two won't run within the time limit, so we ignore them by default.
-MODE=theta-l
-NLEV=30
-
-if [ false ]; then
+#-------------------------------------------------------------------------------
+# Run ne = 30 at varying nlev
+#-------------------------------------------------------------------------------
+if false; then
     MAX_NTASKS=$(( 30 * 30 * 6 ))
-    PREFIX=r100-nlev${NLEV}
-    EXEC=${TEST_EXECS}/${MODE}-nlev${NLEV}/${MODE}-nlev${NLEV}
-    run $(($NVCORES>$(( $CORES_PER_TASK * $MAX_NTASKS ))?MAX_NTASKS:NCORES))
+    MODE=theta-l
+    NLEVS=(30 72 128)
+    for NLEV in ${NLEVS[@]}
+    do
+        EXEC=${TEST_EXECS}/${MODE}-nlev${NLEV}/${MODE}-nlev${NLEV} # Executable
+        PREFIX=ne30-nlev${NLEV}
+        run $(($NVCORES>$(( $CORES_PER_TASK * $MAX_NTASKS ))?MAX_NTASKS:NCORES))
+    done
+fi
 
+#-------------------------------------------------------------------------------
+# Run ne = 60 at varying nlev
+#-------------------------------------------------------------------------------
+if false; then
     MAX_NTASKS=$(( 60 * 60 * 6 ))
-    PREFIX=r050-nlev${NLEV}
-    EXEC=${TEST_EXECS}/${MODE}-nlev${NLEV}/${MODE}-nlev${NLEV}
-    run $(($NVCORES>$(( $CORES_PER_TASK * $MAX_NTASKS ))?MAX_NTASKS:NCORES))
+    MODE=theta-l
+    NLEVS=(30)
+    for NLEV in ${NLEVS[@]}
+    do
+        EXEC=${TEST_EXECS}/${MODE}-nlev${NLEV}/${MODE}-nlev${NLEV} # Executable
+        PREFIX=ne60-nlev${NLEV}
+        run $(($NVCORES>$(( $CORES_PER_TASK * $MAX_NTASKS ))?MAX_NTASKS:NCORES))
+    done
 fi

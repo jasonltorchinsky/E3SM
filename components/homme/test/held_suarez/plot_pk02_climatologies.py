@@ -3,9 +3,11 @@ import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+from datetime import datetime
 import xarray as xr
 
 pk02_p_T = 100. # Polvani-Kushner 2002 nominal tropopause height [hPa]
+pk02_p_sp = 0.5 # Polvani-Kushner 2002 sponge layer height [hPa]
 
 def main():
 
@@ -46,9 +48,15 @@ def main():
     p_tgt = None
 
     #---------------------------------------------------------------------------
-    # Create plots
+    # Calculate climatologies and create plots
     #---------------------------------------------------------------------------
+    msg = "[{}]: Starting climatology calculation and plotting loop.".format(datetime.now().strftime("%H:%M:%S"))
+    print(msg, flush = True)
+
     for plot_var in plot_vars:
+        msg = "[{}]: Starting {}.".format(datetime.now().strftime("%H:%M:%S"), plot_var)
+        print(msg, flush = True)
+
         clim_fileroot = plot_var + "_clim"
         if tag:
             clim_fileroot += "_{}".format(tag)
@@ -56,73 +64,46 @@ def main():
         clim_filepath = os.path.join(working_dir, clim_fileroot + ".nc")
 
         if recalculate or (not os.path.exists(clim_filepath)):
-            if plot_var in ["u", "T", "pnh"]:
-                with xr.open_dataset(homme_output, engine = "netcdf4", decode_timedelta = False) as homme_ds:
+            with xr.open_dataset(homme_output, engine = "netcdf4", decode_timedelta = False,
+                chunks = {"time" : "auto", "lev" : -1, "lat" : "auto", "lon" : "auto"}) as homme_ds:
+                if plot_var in ["u", "T", "pnh"]:
                     val_ds = homme_ds[plot_var].sel(time = slice(spinup_days, None))
-
+                elif plot_var in ["T_eddy"]:
+                    val_ds = homme_ds[plot_var[0]].sel(time = slice(spinup_days, None))
+            
             # Interpolate value to fixed pressure levels
-            val_on_p = interp_to_p(val_ds, p_ds, p_tgt,
+            val = interp_to_p(val_ds, p_ds, p_tgt,
                 spinup_days = spinup_days, homme_output = homme_output)
-            clim = val_on_p.mean(dim = ["time", "lon"], skipna = True)
+
+            val = val.chunk(chunks = {"time" : -1, "p" : "auto", "lat" : "auto", "lon" : -1})
+            
+            if plot_var in ["T_eddy"]:
+                val_zonal_mean = val.mean(dim = "lon", skipna = True)
+                val = np.pow(val - val_zonal_mean, 2)
+            
+            clim = val.mean(dim = ["time", "lon"], skipna = True)
             if plot_var in ["pnh"]:
                 clim = clim / 100. # [Pa] => [hPa]
                 clim.attrs["units"] = "hPa"
+
+            if plot_var in ["T_eddy"]:
+                clim = clim.rename("T_eddy")
+                clim.attrs = {'long_name': 'Temperature Eddy Variance at Midpoints', 'units': 'K^{2}'}
+            
+            clim = clim.chunk(chunks = {"p" : -1, "lat" : -1})
+            clim.load()
+
+            msg = "[{}]: Saving {} to file.".format(datetime.now().strftime("%H:%M:%S"), plot_var)
+            print(msg, flush = True)
             clim.to_netcdf(clim_filepath)
 
         assert(os.path.exists(clim_filepath))
         with xr.open_dataset(clim_filepath, engine = "netcdf4", decode_timedelta = False) as clim_ds:
             clim = clim_ds[plot_var]
 
+        msg = "[{}]: Plotting {}.".format(datetime.now().strftime("%H:%M:%S"), plot_var)
+        print(msg, flush = True)
         plot_clim(plot_var, clim, clim_fileroot, tag, plotting_dir)
-
-
-    # TO-DO: INCLUDE THESE IN TEMPLATE ABOVE
-
-    #---------------------------------------------------------------------------
-    # Temperature eddy variance (T*^2) climatology
-    #---------------------------------------------------------------------------
-    if "T_eddy" in plot_vars:
-        # Get T eddy variance climatology
-        T_eddy_clim_fileroot = "T_eddy_clim"
-        if tag:
-            T_eddy_clim_fileroot += "_{}".format(tag)
-
-        T_eddy_clim_filepath = os.path.join(working_dir, T_eddy_clim_fileroot + ".nc")
-
-        if not recalculate and os.path.exists(T_eddy_clim_filepath):
-            T_eddy_clim = xr.open_dataset(T_eddy_clim_filepath, engine = "netcdf4", decode_timedelta = False)["T"]
-        else:
-            T_ds = xr.open_dataset(homme_output, engine = "netcdf4", decode_timedelta = False)["T"].sel(time = slice(spinup_days, None))
-            T_zonal_mean = T_ds.mean(dim = "lon")
-
-            T_eddy_clim = np.pow(T_ds - T_zonal_mean, 2).mean(dim = ["time", "lon"])
-            T_eddy_clim.to_netcdf(T_eddy_clim_filepath)
-
-        fig, axs = plt.subplots(sharex = True)
-
-        vmax = T_eddy_clim.max()
-        vmin = 0.0
-        cmap = "plasma"
-        T_eddy_clim_plt = axs.pcolormesh(T_eddy_clim["lat"], T_eddy_clim["lev"], T_eddy_clim,
-            vmin = vmin, vmax = vmax, cmap = cmap)
-        axs.axvline([0], color = "grey")
-
-        axs.yaxis.set_inverted(True)
-
-        cb = fig.colorbar(T_eddy_clim_plt, ax = axs)
-        cb.set_label(r"Temperature Eddy Variation $\left[ K^{2} \right]$")
-
-        fig.supxlabel(r"Latitude $\left[ ^{\circ} \right]$")
-        fig.supylabel("Level")
-        suptitle = "Climatology"
-        if tag:
-            suptitle += " - {}".format(tag)
-        fig.suptitle(suptitle)
-
-        T_eddy_clim_plt_filepath = os.path.join(plotting_dir, T_eddy_clim_fileroot + ".png")
-        plt.savefig(T_eddy_clim_plt_filepath, dpi = 256, bbox_inches = "tight")
-
-        plt.close()
 
 def ufunc_interp_to_p(val_col, p_col, p_tgt):
     # ASSUME: p_col, p_tgt in ascending order
@@ -136,14 +117,18 @@ def interp_to_p(val_ds, p_ds, p_tgt, spinup_days = None, homme_output = None):
     
     if (p_ds is None) or (p_tgt is None):
         # Read in HOMME data
-        with xr.open_dataset(homme_output, engine = "netcdf4", decode_timedelta = False) as homme_ds:
+        with xr.open_dataset(homme_output, engine = "netcdf4", decode_timedelta = False,
+            chunks = {"time" : -1, "lev" : "auto", "lat" : -1, "lon" : -1}) as homme_ds:
             p_ds = homme_ds["p"].sel(time = slice(spinup_days, None)) # Hydrostatic pressure [Pa]
 
         # Get target pressure grid
-        np_p_tgt = p_ds.mean(dim = ["time", "lat", "lon"]).values
+        np_p_tgt = p_ds.mean(dim = ["time", "lat", "lon"]).to_numpy()
         p_tgt = xr.DataArray(np_p_tgt, dims = ["p"],
             attrs = {"units": "Pa", "long_name": "Hydrostatic Pressure"}
         )
+
+        # Re-chunk p_ds
+        p_ds = p_ds.chunk(chunks = {"time" : "auto", "lev" : -1, "lat" : "auto", "lon" : "auto"})
 
     val_on_p = xr.apply_ufunc(
         ufunc_interp_to_p, val_ds, p_ds, p_tgt,
@@ -174,10 +159,12 @@ def str2bool(v):
 def plot_clim(plot_var, clim, clim_fileroot, tag, plotting_dir):
     var_labels = {"u" : r"Zonal Wind $\left[ m\,s^{-1} \right]$",
         "T" : r"Temperature $\left[ K \right]$",
-        "pnh" : r"Pressure $\left[ hPa \right]$"}
+        "pnh" : r"Pressure $\left[ hPa \right]$",
+        "T_eddy" : r"Temperature Eddy Variation $\left[ K^{2} \right]$"}
     var_cmaps = {"u" : "RdBu",
         "T" : "plasma",
-        "pnh" : "viridis"}
+        "pnh" : "viridis",
+        "T_eddy" : "plasma"}
     
     fig, axs = plt.subplots(sharex = True)
 
@@ -188,6 +175,9 @@ def plot_clim(plot_var, clim, clim_fileroot, tag, plotting_dir):
     elif plot_var in ["T", "pnh"]:
         vmax = clim.max()
         vmin = clim.min()
+    elif plot_var in ["T_eddy"]:
+        vmax = clim.max()
+        vmin = 0.
 
     lat = clim["lat"]
     p = clim["p"] / 100. # [Pa] => [hPa]
@@ -196,6 +186,7 @@ def plot_clim(plot_var, clim, clim_fileroot, tag, plotting_dir):
     clim_plt = axs.pcolormesh(lat, p, clim,
         vmin = vmin, vmax = vmax, cmap = cmap)
     axs.axvline([0], color = "grey")
+    axs.axhline([pk02_p_sp], color = "grey", linestyle = "dashed")
     axs.axhline([pk02_p_T], color = "grey")
 
     # Colorbar
@@ -215,6 +206,10 @@ def plot_clim(plot_var, clim, clim_fileroot, tag, plotting_dir):
     elif plot_var in ["T"]:
         zero_levels = None
         pos_levels = [180, 220, 260, 300]
+        neg_levels = None
+    else:
+        zero_levels = None
+        pos_levels = None
         neg_levels = None
 
     if zero_levels is not None:

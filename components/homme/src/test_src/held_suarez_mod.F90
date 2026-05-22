@@ -404,13 +404,12 @@ contains
     real (kind=real_kind) :: W(npts,npts),one_minus_W(npts,npts)
 
     real (kind=real_kind) :: rec_one_minus_sigma_b
-    real (kind=real_kind) :: T_US,T_US_T,T_PV
+    real (kind=real_kind) :: T_US,T_PV
 
     integer i,j,k
 
     ! Comments reflect notation in (Polvani & Kushner 2002), doi: 10.1029/2001GL014284
     logps0 = LOG(pk02_p_0) ! log(p_0)
-    T_US_T = us_std_T(us_std_z(pk02_p_T))
 
     do j = 1,npts
        do i = 1,npts
@@ -443,7 +442,7 @@ contains
                 Teq = MAX(pk02_T_T, (pk02_T_0 - delta_T) * pratk)
              else ! p < pk02_p_T, stratosphere equilibrium temperature profile
                T_US = us_std_T(us_std_z(p))
-               T_PV = T_US_T * (p / pk02_p_T)**(Rgas * pk02_gamma / g)
+               T_PV = pk02_T_T * (p / pk02_p_T)**(Rgas * pk02_gamma / g)
                Teq = one_minus_W(i,j) * T_US + W(i,j) * T_PV
              end if
 
@@ -493,7 +492,7 @@ contains
     ! local variables
     real (kind=real_kind) :: h
 
-    h = (rearth0 * z) / (rearth0 + z)
+    h = (rearth0 * z) / (rearth0 + z) ! Geopotential height [m']
     if ((h >= us76_H_b(0)) .and. (h < us76_H_b(1))) then
          T = us76_TM_b(0) + us76_LM_b(0) * (h - us76_H_b(0))
     else if ((h >= us76_H_b(1)) .and. (h < us76_H_b(2))) then
