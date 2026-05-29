@@ -22,14 +22,15 @@ if false; then
 fi
 
 PK_DIR=/projects/scream_strat/jltorch/polvani_kushner
-TAG=ne8-nlev72
+TAG=ne30-nlev72
 
 if true; then
     #---------------------------------------------------------------------------
     STAGE_NAME="POLVANI-KUSHNER CLIMATOLOGY VISUALIZATION"
     echo "Beginning ${STAGE_NAME}..."
 
-    python plot_pk02_climatologies.py \
+    mpirun -np 256 \
+      python plot_pk02_climatologies_new.py \
         --spinup-days 200 \
         --homme-output ${PK_DIR}/${TAG}-held_suarez.nc \
         --plot-vars u,T \
@@ -43,9 +44,9 @@ if true; then
 fi
 
 VCOORD_DIR=/ascldap/users/jltorch/codes/e3sm/jasonltorchinsky/held-suarez/components/homme/test/vcoord
-VCOORD_NAME=cam
-I_FILE=${VCOORD_DIR}/cami-30.ascii
-M_FILE=${VCOORD_DIR}/camm-30.ascii
+VCOORD_NAME=turbeville
+I_FILE=${VCOORD_DIR}/turbeville-183i.ascii
+M_FILE=${VCOORD_DIR}/turbeville-183m.ascii
 
 if false; then
     #---------------------------------------------------------------------------

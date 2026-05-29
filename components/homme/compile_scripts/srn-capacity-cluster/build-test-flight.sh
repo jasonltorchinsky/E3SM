@@ -59,7 +59,7 @@ case "${TEST_ID}" in
 	held_suarez)
 		TEST_NAME="Held-Suarez"
 		MODE=theta-l
-		NLEVS=(30 72 128)
+		NLEVS=(30 72 128 183)
 		SRC_TEST_DIR=${SRC_TEST}/${TEST_ID}
 		WORK_TEST_DIR=${WORK_TEST}/${TEST_ID}
 		;;
@@ -101,7 +101,7 @@ echo "-- Copying ${TEST_NAME} namelist and jobscript files to work space..."
 
 mkdir -p ${WORK_TEST_DIR}
 cp ${SRC_TEST_DIR}/*.nl ${WORK_TEST_DIR}
-cp ${SRC_TEST_DIR}/*.sh ${WORK_TEST_DIR}
+cp ${SRC_TEST_DIR}/*.job ${WORK_TEST_DIR}
 
 echo "-- Copied ${TEST_NAME} namelist and jobscript files to work space!"
 

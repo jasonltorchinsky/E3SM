@@ -11,7 +11,8 @@ from us_std_atm import z_us_std_atm_p
 # Constants
 pk02_p_T = 100. # Polvani-Kushner 2002 nominal tropopause height [hPa]
 pk02_p_sp = 0.5 # Polvani-Kushner 2002 sponge layer height [hPa]
-p0 = 1000. # Base-State Surface Pressure
+p0 = 1000. # Base-state surface pressure [hPa]
+ps = 1013.25 # Reference standard surface prssure [hPa]
 
 def main():
 
@@ -37,9 +38,10 @@ def main():
             os.makedirs(dirpath)
 
     # Recreate verical coordinate
+    assert (vcoord_name in ["scream", "sab", "acme", "turbeville", "cam"])
     with open(interface_filepath) as vfile_int:
         interface_str = vfile_int.read()
-        if vcoord_name in ["scream", "sab", "acme"]:
+        if vcoord_name in ["scream", "sab", "acme", "turbeville"]:
             interface_lines = [line for line in interface_str.splitlines() if line]
         elif vcoord_name in ["cam"]:
             interface_lines = [line for line in interface_str.split() if line[0].isdigit()]
@@ -50,7 +52,7 @@ def main():
 
     with open(midpoint_filepath) as vfile_mid:
         midpoint_str = vfile_mid.read()
-        if vcoord_name in ["scream", "sab", "acme"]:
+        if vcoord_name in ["scream", "sab", "acme", "turbeville"]:
             midpoint_lines = [line for line in midpoint_str.splitlines() if line]
         elif vcoord_name in ["cam"]:
             midpoint_lines = [line for line in midpoint_str.split() if line[0].isdigit()]
@@ -58,13 +60,13 @@ def main():
         nlev = int(midpoint_lines[0].split()[0])
         hyam = np.array(midpoint_lines[1:nlev+1], dtype = np.float32) # A coefficients - Sela 2009, url: https://repository.library.noaa.gov/view/noaa/11401/noaa_11401_DS1.pdf
         hybm = np.array(midpoint_lines[nlev+2:], dtype = np.float32) # B coefficients - Sela 2009, url: https://repository.library.noaa.gov/view/noaa/11401/noaa_11401_DS1.pdf
-    
+
     assert(nlev + 1 == nilev)
 
-    pi = hyai * p0 + hybi * p0 # Pressure at interfaces [hPa]
+    pi = hyai * p0 + hybi * ps # Pressure at interfaces [hPa] (calculated as in components/homme/src/share/prim_driver_base.F90)
     zi = z_us_std_atm_p(pi) # Geometric height at interfaces [m]
     dzi = zi[:-1] - zi[1:] # Geometric thickness of layers NOTE: ToA is k = 0 [m]
-    pm = hyam * p0 + hybm * p0 # Pressure at midpoints [hPa]
+    pm = hyam * p0 + hybm * ps # Pressure at midpoints [hPa]
 
     # Plot vertical coordinate
     fig, axs = plt.subplots(figsize = (9, 6.5))

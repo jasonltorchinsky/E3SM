@@ -49,7 +49,7 @@ TEST_EXECS=${WORK_HOMME}/test_execs
 function run {
     local NTASKS=$1
     echo "NTASKS = ${NTASKS}"
-    NAMELIST=namelist-${PREFIX}.nl
+    NAMELIST=${PREFIX}.nl
     \cp -f ${NAMELIST} input.nl
     srun -K -c ${CORES_PER_TASK} -n ${NTASKS} -N ${SLURM_NNODES} ${EXEC} < input.nl
     date
@@ -65,7 +65,7 @@ function run {
 if true; then
     MAX_NTASKS=$(( 8 * 8 * 6 ))
     MODE=theta-l
-    NLEVS=(30 72 128)
+    NLEVS=(30 72 128 183)
     for NLEV in ${NLEVS[@]}
     do
         EXEC=${TEST_EXECS}/${MODE}-nlev${NLEV}/${MODE}-nlev${NLEV} # Executable
@@ -81,7 +81,7 @@ fi
 if false; then
     MAX_NTASKS=$(( 30 * 30 * 6 ))
     MODE=theta-l
-    NLEVS=(30 72 128)
+    NLEVS=(30 72 128 183)
     for NLEV in ${NLEVS[@]}
     do
         EXEC=${TEST_EXECS}/${MODE}-nlev${NLEV}/${MODE}-nlev${NLEV} # Executable
