@@ -12,7 +12,6 @@ from us_std_atm import z_us_std_atm_p
 pk02_p_T = 100. # Polvani-Kushner 2002 nominal tropopause height [hPa]
 pk02_p_sp = 0.5 # Polvani-Kushner 2002 sponge layer height [hPa]
 p0 = 1000. # Base-state surface pressure [hPa]
-ps = 1013.25 # Reference standard surface prssure [hPa]
 
 def main():
 
@@ -63,20 +62,28 @@ def main():
 
     assert(nlev + 1 == nilev)
 
-    pi = hyai * p0 + hybi * ps # Pressure at interfaces [hPa] (calculated as in components/homme/src/share/prim_driver_base.F90)
-    zi = z_us_std_atm_p(pi) # Geometric height at interfaces [m]
+    pm = p0 * (hyam + hybm) # Pressure at midpoints [hPa]
+    pi = p0 * (hyai + hybi) # Pressure at interfaces [hPa] (calculated as in components/homme/test/vcoord/netcdf_coord_file.F)
+    zi = z_us_std_atm_p(pi) # Geometric height at interfaces [m] NOTE: As approximated by the US Standard Atmosphere 1976
     dzi = zi[:-1] - zi[1:] # Geometric thickness of layers NOTE: ToA is k = 0 [m]
-    pm = hyam * p0 + hybm * ps # Pressure at midpoints [hPa]
 
     # Plot vertical coordinate
     fig, axs = plt.subplots(figsize = (9, 6.5))
 
-    axs.plot(dzi, pm, color = "k", marker = ".", markersize = 5.0, zorder = 1)
+    axs.plot(dzi, pm, color = "blue", marker = ".", markersize = 5.0, zorder = 1)
 
-    axs.axhline([pk02_p_sp], color = "grey", linestyle = "dashed", 
+    axs.axhline([0.003733835899762154], color = "grey", linestyle = "dashdot", linewidth = 2.0,
+        label = "U.S. Standard Atmosphere 1976 Mesopause Height", zorder = 0)
+    axs.axhline([1], color = "grey", linestyle = "dotted", linewidth = 2.0,
+        label = "Nominal Stratopause Height", zorder = 0)
+    axs.axhline([pk02_p_sp], color = "grey", linestyle = "dashed", linewidth = 2.0,
         label = "PK 2002 Sponge Layer Height", zorder = 0)
-    axs.axhline([pk02_p_T], color = "grey", label = "PK 2002 Nominal Tropopause Height",
+    axs.axhline([pk02_p_T], color = "grey", linewidth = 2.0,
+        label = "PK 2002 Nominal Tropopause Height",
         zorder = 0)
+
+    axs.axhline([pi.min()], color = "blue", linewidth = 0.5, zorder = 0)
+    axs.axhline([pi.max()], color = "blue", linewidth = 0.5, zorder = 0)
 
     axs.legend()
 

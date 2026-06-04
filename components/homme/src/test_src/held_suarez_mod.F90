@@ -43,7 +43,7 @@ private
     = (/ 288.15D0, 216.65D0, 216.65D0, 228.65D0, 270.65D0, 270.65D0, 214.65D0, 186.946D0 /) ! Molecular-scale temperature at reference levels [K]
   real (kind=real_kind), public, parameter :: us76_p_b(0:7) &
     = (/ 1.01325000D5, 2.26320640D4, 5.47488867D3, 8.68018685D2, 1.10906306D2, &
-       6.69388731D3, 3.95642043D4, 3.73383590D5 /) ! Pressure at reference levels [Pa]
+       6.69388731D1, 3.95642043D0, 3.73383590D-1 /) ! Pressure at reference levels [Pa]
 
   ! From (Polvani & Kushner 2002), doi: 10.1029/2001GL014284
   ! Typos corrected in, e.g., (Kushner & Polvani 2006), doi: 10.7916/D8G451FW
@@ -53,8 +53,8 @@ private
   real (kind=real_kind), public, parameter :: pk02_k_s       = 1.0D0/(4.0D0*secpday)  ! [day^{-1}] => [sec^{-1}]
   real (kind=real_kind), public, parameter :: pk02_k_max     = 1.0D0/(2.0D0*secpday)  ! [day^{-1}] => [sec^{-1}]
   real (kind=real_kind), public, parameter :: pk02_p_sp      = 0.5D2  ! [Pa]
-  real (kind=real_kind), public, parameter :: pk02_phi_0     = -50.0D0*(dd_pi/180.0D0)  ! [deg latitude] => [radians]
-  real (kind=real_kind), public, parameter :: pk02_delta_phi = 10.0D0*(dd_pi/180.0D0)   ! [deg latitude] => [radians]
+  real (kind=real_kind), public, parameter :: pk02_phi_0     = -50.0D0*(dd_pi/180.0D0) ! [deg latitude] => [radians]
+  real (kind=real_kind), public, parameter :: pk02_delta_phi = 10.0D0*(dd_pi/180.0D0)  ! [deg latitude] => [radians]
   real (kind=real_kind), public, parameter :: pk02_p_T       = 100.0D2  ! [Pa]
   real (kind=real_kind), public, parameter :: pk02_T_T       = 216.65D0 ! [K]
   real (kind=real_kind), public, parameter :: pk02_T_0       = 315.0D0  ! [K]
