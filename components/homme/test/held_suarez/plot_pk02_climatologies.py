@@ -195,15 +195,9 @@ def vremap_field(homme_ds, p_tgt, plot_var, comm):
     [nz_tgt] = p_tgt.shape
     l_field_tgt = np.empty([l_nt, nlat, nlon, nz_tgt], dtype = l_field_src.dtype)
 
-    count = 0
     for tt in range(0, l_nt):
         for jj in range(0, nlat):
             for ii in range(0, nlon):
-                if l_rank == MPI_ROOT:
-                    count += 1
-                    datetime_now = datetime.now().strftime("%H:%M:%S")
-                    msg = "[{}]: Interpolating {} of {}.".format(datetime_now, count, nlon*nlat*l_nt)
-                    print(msg, flush = True)
                 l_field_tgt[tt,jj,ii,:] = np.interp(p_tgt, p_src[tt,jj,ii,:],
                     l_field_src[tt,jj,ii,:], left = np.nan, right = np.nan)
 

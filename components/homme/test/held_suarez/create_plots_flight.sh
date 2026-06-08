@@ -39,7 +39,7 @@ if false; then
 fi
 
 PK_DIR=/pscratch/jltorch/scream-strat/e3sm/jasonltorchinsky/held-suarez/homme/test/held_suarez/movies
-TAG=ne30-nlev72
+TAG=ne30-nlev183
 
 if true; then
     #---------------------------------------------------------------------------
