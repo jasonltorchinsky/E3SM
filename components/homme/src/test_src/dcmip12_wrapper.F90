@@ -1,7 +1,3 @@
-
-
-
-
 #ifndef CAM
 #include "config.h"
 

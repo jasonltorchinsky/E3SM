@@ -11,16 +11,32 @@ MPI_ROOT = 0
 pk02_p_T = 100. # Polvani-Kushner 2002 nominal tropopause height [hPa]
 pk02_p_sp = 0.5 # Polvani-Kushner 2002 sponge layer height [hPa]
 
-var_attrs = { "u" : {"units" : "m s^{-1}",
-                     "description" : "Zonal wind velocity"}
-    }
+xr_var_attrs = {"T" : {"units" : "K",
+               "description" : "Temperature"},
+    "u" : {"units" : "m s^{-1}",
+           "description" : "Zonal Wind Velocity"},
+    "v" : {"units" : "m s^{-1}",
+           "description" : "Meridional Wind Velocity"},
+    "w" : {"units" : "m s^{-1}",
+           "description" : "Vertical Wind Velocity"},
+}
+
+plt_var_attrs = {"T" : {"label" : r"Temperature $\left[ K \right]$",
+                        "cmap" : "plasma"},
+    "u" : {"label" : r"Zonal Wind Velocity $\left[ m\,s^{-1} \right]$",
+           "cmap" : "RdBu"},
+    "v" : {"label" : r"Meridional Wind Velocity $\left[ m\,s^{-1} \right]$",
+           "cmap" : "RdBu"},
+    "w" : {"label" : r"Vertical Wind Velocity $\left[ m\,s^{-1} \right]$",
+           "cmap" : "RdBu"},
+}
 
 coord_attrs = { "p" : {"units" : "Pa",
                        "description" : "Hydrostatic pressure"},
     "lat" : {"units" : "degrees",
              "description" : "Latitude",
              "range" : "-90 to 90"}
-    }
+}
 
 
 def main():
@@ -133,7 +149,7 @@ def main():
             if l_rank == MPI_ROOT:
                 g_clim_ds = xr.Dataset(
                     data_vars = {
-                        plot_var : (["p", "lat"], g_field_clim, var_attrs[plot_var])
+                        plot_var : (["p", "lat"], g_field_clim, xr_var_attrs[plot_var])
                     },
                     coords = {
                         "p" : ("p", p_tgt, coord_attrs["p"]),
@@ -168,7 +184,8 @@ def get_p_tgt(homme_ds, comm):
     return p_tgt
 
 def vremap_field(homme_ds, p_tgt, plot_var, comm):
-    assert(plot_var in ["u"])
+    supported_plot_vars = ["T", "u", "v", "w"]
+    assert(plot_var in supported_plot_vars)
 
     #---------------------------------------------------------------------------
     # Get MPI communicator parameters
@@ -178,7 +195,7 @@ def vremap_field(homme_ds, p_tgt, plot_var, comm):
     #---------------------------------------------------------------------------
     # Obtain p_src, field value from file
     #---------------------------------------------------------------------------
-    if plot_var in ["u"]:
+    if plot_var in ["T", "u", "v", "w"]:
         field_key = plot_var
 
     p_src = homme_ds["p"].to_numpy() # Pressure [Pa], [l_nt, nz, nlat, nlon]
@@ -252,32 +269,20 @@ def str2bool(v):
 
 
 def plot_clim(plot_var, clim, clim_fileroot, tag, plotting_dir, set_ylim = True):
-    var_labels = {"u" : r"Zonal Wind $\left[ m\,s^{-1} \right]$",
-        "T" : r"Temperature $\left[ K \right]$",
-        "pnh" : r"Pressure $\left[ hPa \right]$",
-        "T_eddy" : r"Temperature Eddy Variation $\left[ K^{2} \right]$"}
-    var_cmaps = {"u" : "RdBu",
-        "T" : "plasma",
-        "pnh" : "viridis",
-        "T_eddy" : "plasma"}
-
     fig, axs = plt.subplots(sharex = True)
 
     # Color plot
-    if plot_var in ["u"]:
+    if plot_var in ["u", "v", "w"]:
         vmax = np.abs(clim).max()
         vmin = -vmax
-    elif plot_var in ["T", "pnh"]:
+    elif plot_var in ["T"]:
         vmax = clim.max()
         vmin = clim.min()
-    elif plot_var in ["T_eddy"]:
-        vmax = clim.max()
-        vmin = 0.
 
     lat = clim["lat"]
     p = clim["p"] / 100. # [Pa] => [hPa]
 
-    cmap = var_cmaps[plot_var]
+    cmap = plt_var_attrs[plot_var]["cmap"]
     clim_plt = axs.pcolormesh(lat, p, clim,
         vmin = vmin, vmax = vmax, cmap = cmap)
     axs.axvline([0], color = "grey")
@@ -300,6 +305,14 @@ def plot_clim(plot_var, clim, clim_fileroot, tag, plotting_dir, set_ylim = True)
         zero_levels = [0]
         pos_levels = np.arange(10, np.ceil(vmax / 10) * 10, 10)
         neg_levels = np.arange(-np.ceil(vmax / 10) * 10, 0, 10)
+    elif plot_var in ["v"]:
+        zero_levels = [0]
+        pos_levels = np.arange(1, np.ceil(vmax))
+        neg_levels = np.arange(-np.ceil(vmax), 0, 1)
+    elif plot_var in ["w"]:
+        zero_levels = [0]
+        pos_levels = np.arange(1.e-3, np.ceil(vmax * 1.e3) * 1e-3, 1.e-3)
+        neg_levels = np.arange(-np.ceil(vmax * 1.e3) * 1e-3, 0, 1.e-3)
     elif plot_var in ["T"]:
         zero_levels = [np.ceil(vmin / 20) * 20]
         pos_levels = np.arange((np.ceil(vmin / 20) + 1) * 20, np.ceil(vmax / 20) * 20, 20)
@@ -341,7 +354,7 @@ def plot_clim(plot_var, clim, clim_fileroot, tag, plotting_dir, set_ylim = True)
     #axs.legend()
 
     # Labels
-    cb.set_label(var_labels[plot_var])
+    cb.set_label(plt_var_attrs[plot_var]["label"])
 
     fig.supxlabel(r"Latitude $\left[ ^{\circ} \right]$")
     fig.supylabel(r"Hydrostatic Pressure $\left[ hPa \right]$")

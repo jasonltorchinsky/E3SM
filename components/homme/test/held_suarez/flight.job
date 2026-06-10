@@ -65,7 +65,7 @@ function run {
 if true; then
     MAX_NTASKS=$(( 8 * 8 * 6 ))
     MODE=theta-l
-    NLEVS=(30 72 128 183)
+    NLEVS=(72)
     for NLEV in ${NLEVS[@]}
     do
         EXEC=${TEST_EXECS}/${MODE}-nlev${NLEV}/${MODE}-nlev${NLEV} # Executable

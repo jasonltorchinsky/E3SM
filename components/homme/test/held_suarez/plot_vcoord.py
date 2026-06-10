@@ -6,7 +6,7 @@ import os
 from datetime import datetime
 
 # Local imports
-from us_std_atm import z_us_std_atm_p
+from us_standard_atmosphere_1976 import geometric_height_from_pressure
 
 # Constants
 pk02_p_T = 100. # Polvani-Kushner 2002 nominal tropopause height [hPa]
@@ -64,7 +64,7 @@ def main():
 
     pm = p0 * (hyam + hybm) # Pressure at midpoints [hPa]
     pi = p0 * (hyai + hybi) # Pressure at interfaces [hPa] (calculated as in components/homme/test/vcoord/netcdf_coord_file.F)
-    zi = z_us_std_atm_p(pi) # Geometric height at interfaces [m] NOTE: As approximated by the US Standard Atmosphere 1976
+    zi = geometric_height_from_pressure(pi) # Geometric height at interfaces [m] NOTE: As approximated by the US Standard Atmosphere 1976
     dzi = zi[:-1] - zi[1:] # Geometric thickness of layers NOTE: ToA is k = 0 [m]
 
     # Plot vertical coordinate

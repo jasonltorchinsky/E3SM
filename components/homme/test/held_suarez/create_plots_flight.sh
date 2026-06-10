@@ -3,8 +3,8 @@
 #   Jobscript for creating plots on Flight, an SRN Capacity Cluster
 #
 
-#SBATCH --time=0-02:30:00
-#SBATCH --nodes=16
+#SBATCH --time=0-00:30:00
+#SBATCH --nodes=32
 #SBATCH --ntasks-per-node=1
 #SBATCH --account=fy260144
 #SBATCH --reservation=flight-cldera
@@ -39,7 +39,7 @@ if false; then
 fi
 
 PK_DIR=/pscratch/jltorch/scream-strat/e3sm/jasonltorchinsky/held-suarez/homme/test/held_suarez/movies
-TAG=ne30-nlev183
+TAG=ne8-nlev183
 
 if true; then
     #---------------------------------------------------------------------------
@@ -51,7 +51,7 @@ if true; then
       python plot_pk02_climatologies.py \
         --spinup-days 200 \
         --homme-output ${PK_DIR}/${TAG}-held_suarez.nc \
-        --plot-vars u \
+        --plot-vars T,u,v,w \
         --tag ${TAG} \
         --working-dir .polvani_kushner/${TAG} \
         --plotting-dir polvani_kushner/${TAG} \
