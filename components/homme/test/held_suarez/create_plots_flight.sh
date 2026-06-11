@@ -17,8 +17,8 @@
 
 # This copy of the script is meant for Flight, an SRN Capacity Cluster.
 
-HS_DIR=/projects/scream_strat/jltorch/held_suarez
-TAG=r400-nlev30
+HS_DIR=/projects/scream_strat/jltorch/polvani_kushner
+TAG=ne8-nlev72
 
 if false; then
     #---------------------------------------------------------------------------
@@ -26,11 +26,14 @@ if false; then
     STAGE_NAME="HELD-SUAREZ CLIMATOLOGY VISUALIZATION"
     echo "[${CURRENT_TIME}]: Beginning ${STAGE_NAME}..."
 
-    python plot_hs94_climatologies.py \
-        --spinup-days 365 \
+    srun --mpi=pmi2 -n ${SLURM_NTASKS} --cpu-bind=cores \
+      python plot_hs94_climatologies_new.py \
+        --spinup-days 200 \
         --homme-output ${HS_DIR}/${TAG}-held_suarez.nc \
-        --plot-vars u,T,T_eddy,pnh \
+        --plot-vars T,u,v,w \
         --tag ${TAG} \
+        --working-dir /pscratch/jltorch/scream-strat/.held_suarez/${TAG} \
+        --plotting-dir /pscratch/jltorch/scream-strat/held_suarez/${TAG} \
         --recalculate true
 
     CURRENT_TIME=$(date +"%T")
@@ -39,7 +42,7 @@ if false; then
 fi
 
 PK_DIR=/pscratch/jltorch/scream-strat/e3sm/jasonltorchinsky/held-suarez/homme/test/held_suarez/movies
-TAG=ne8-nlev183
+TAG=ne30-nlev72
 
 if true; then
     #---------------------------------------------------------------------------
@@ -53,8 +56,8 @@ if true; then
         --homme-output ${PK_DIR}/${TAG}-held_suarez.nc \
         --plot-vars T,u,v,w \
         --tag ${TAG} \
-        --working-dir .polvani_kushner/${TAG} \
-        --plotting-dir polvani_kushner/${TAG} \
+        --working-dir /pscratch/jltorch/scream-strat/.polvani_kushner/${TAG} \
+        --plotting-dir /pscratch/jltorch/scream-strat/polvani_kushner/${TAG} \
         --recalculate true
 
     CURRENT_TIME=$(date +"%T")
