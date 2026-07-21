@@ -307,7 +307,6 @@ def plot_clim(plot_var, clim, clim_fileroot, tag, plotting_dir, set_ylim = True)
     lat = clim["lat"]
     p = clim["p"] / 100. # [Pa] => [hPa]
 
-
     ps = p.max() # "Instantaneous" surface pressure
     sigma = p / ps # Sigma coordinate
 
@@ -377,7 +376,7 @@ def plot_clim(plot_var, clim, clim_fileroot, tag, plotting_dir, set_ylim = True)
     axs.yaxis.set_inverted(True)
     axs.set_yscale("log")
     if set_ylim:
-        axs.set_ylim([p.max(), 0.2])
+        axs.set_ylim([sigma.max(), sigma.min()])
 
     # Legend
     #axs.legend()

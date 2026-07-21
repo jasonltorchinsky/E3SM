@@ -17,7 +17,7 @@
 
 # This copy of the script is meant for Flight, an SRN Capacity Cluster.
 
-HS_DIR=/projects/scream_strat/jltorch/polvani_kushner
+HS_DIR=/projects/scream_strat/jltorch/held_suarez
 TAG=ne8-nlev72
 
 if false; then
@@ -34,7 +34,7 @@ if false; then
         --tag ${TAG} \
         --working-dir /pscratch/jltorch/scream-strat/.held_suarez/${TAG} \
         --plotting-dir /pscratch/jltorch/scream-strat/held_suarez/${TAG} \
-        --recalculate true
+        --recalculate false
 
     CURRENT_TIME=$(date +"%T")
     echo "[${CURRENT_TIME}]: ${STAGE_NAME} complete!"

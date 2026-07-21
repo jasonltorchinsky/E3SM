@@ -23,7 +23,7 @@ if false; then
     #---------------------------------------------------------------------------
 fi
 
-PK_DIR=~/data/scream-strat/polvani-kushner
+PK_DIR=/projects/scream_strat/jltorch/polvani_kushner
 TAG=ne8-nlev72
 
 if true; then
@@ -33,9 +33,9 @@ if true; then
     echo "[${CURRENT_TIME}]: Beginning ${STAGE_NAME}..."
 
     #mpirun -np 32 \
-      python plot_pk02_climatologies.py \
-        --spinup-days 200 \
-        --homme-output ${PK_DIR}/${TAG}-held_suarez.nc \
+      python plotting/src/plot_pk02_climatologies.py \
+        --spinup-days 1150 \
+        --homme-output ${PK_DIR}/${TAG}-polvani_kushner_north.nc \
         --plot-vars u \
         --tag ${TAG} \
         --working-dir .polvani_kushner/${TAG} \
