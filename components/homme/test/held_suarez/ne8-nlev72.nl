@@ -50,6 +50,7 @@
 /
 
 &analysis_nl
+  infilenames       = ""              ! Topography file path
   output_dir        = "./movies/"     ! Destination directory for NetCDF file
   output_timeunits  = 2,              ! 0 = Timesteps, 1 = Days, 2 = Hours, 3 = Seconds
   output_frequency  = 24,             ! Every N time units
